@@ -26,6 +26,8 @@ namespace AtlasGUI
     QWidget* m_renderingOptionsWidget{nullptr};
     QWidget* m_imageNavigationWidget{nullptr};
 
+    bool m_isModelLoaded{false};
+
     auto Initialize() -> void;
     auto BuildRatModelWidget() -> void;
     auto BuildImagePathWidget() -> void;

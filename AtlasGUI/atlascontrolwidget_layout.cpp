@@ -35,10 +35,9 @@ namespace AtlasGUI
     auto comboBox = new QComboBox{};
     auto loadButton = new QPushButton{"Load Model"};
 
-    std::ranges::for_each(AtlasCommon::AtlasDataSetNames, [&comboBox](const auto& pair)
-    {
-      comboBox->addItem(pair.second);
-    });
+    // Better to do it this way to keep the indexing. 
+    comboBox->addItem("LGN");
+    comboBox->addItem("PAG");
 
     layout->addWidget(label);
     layout->addWidget(comboBox);
@@ -55,25 +54,38 @@ namespace AtlasGUI
     auto lineEdit = new QLineEdit{};
     auto browseButton = new QPushButton{"Browse"};
     auto loadImageButton = new QPushButton{"Load Image"};
+    auto findBestMatchButton = new QPushButton{"Find Best Match"};
+
+    lineEdit->setReadOnly(true);
+    
     layout->addWidget(label);
     layout->addWidget(lineEdit);
     layout->addWidget(browseButton);
     layout->addWidget(loadImageButton);
+    layout->addWidget(findBestMatchButton);
+
+    loadImageButton->setEnabled(false);
+    findBestMatchButton->setEnabled(false);
     
-    QObject::connect(browseButton, &QPushButton::clicked, [lineEdit]()
+    QObject::connect(browseButton, &QPushButton::clicked, [lineEdit, loadImageButton]()
     {
       auto path = QFileDialog::getOpenFileName();
       lineEdit->setText(path);
+      if(!path.isEmpty())
+        loadImageButton->setEnabled(true);
+      else
+        loadImageButton->setEnabled(false); // Disable it again.
     });
 
     auto messenger = &AtlasMessenger::Messenger::Instance();
 
-    QObject::connect(loadImageButton, &QPushButton::clicked, [lineEdit, messenger](){
+    QObject::connect(loadImageButton, &QPushButton::clicked, [lineEdit, findBestMatchButton, messenger](){
       auto path = lineEdit->text().toStdString();
       // bail, no path
       if(path.empty())
         return;
 
+      findBestMatchButton->setEnabled(true); 
       auto args = std::string{"LoadImage," + path};
       messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
@@ -108,5 +120,6 @@ namespace AtlasGUI
     auto dataSet = comboBox->currentIndex();
     auto args = std::string{"LoadDataSet," + std::to_string(dataSet)};
     AtlasMessenger::Messenger::Instance().SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasModel);
+    m_isModelLoaded = true;
   }
 }

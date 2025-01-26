@@ -9,7 +9,6 @@
 #include <vector>
 #include <string_view>
 
-
 namespace AtlasModel
 {
   class Model
@@ -17,7 +16,7 @@ namespace AtlasModel
     public:
       Model();
 
-      auto GetBestFits(const std::string_view imageName) const -> std::array<AtlasImage::Image, 5>;
+      auto GetBestFits(const std::string_view imageName) -> std::array<AtlasImage::Image, 5>;
       auto LoadDataSet(const AtlasCommon::AtlasDataSet dataSet) -> void;
 
       auto HandleMessage(const char* message) -> void;
@@ -26,8 +25,10 @@ namespace AtlasModel
       static const std::unordered_map<AtlasCommon::AtlasDataSet, std::string> m_dataSetPaths; 
 
       std::vector<std::unique_ptr<AtlasImage::Image>> m_images;
+      std::unique_ptr<AtlasImage::Image> m_imageToProcess{nullptr};
 
       auto InitializeModel() -> void;
+      auto CalculateMatchScore() const -> double;
       
   };
 }

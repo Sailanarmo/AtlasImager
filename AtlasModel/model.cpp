@@ -27,8 +27,13 @@ namespace AtlasModel
   }
 
   // Should this return by rvalue reference?
-  auto Model::GetBestFits(const std::string_view imageName) const -> std::array<AtlasImage::Image, 5>
+  auto Model::GetBestFits(const std::string_view imageName) -> std::array<AtlasImage::Image, 5>
   {
+    if(m_imageToProcess)
+      m_imageToProcess.reset();
+
+    m_imageToProcess = std::make_unique<AtlasImage::Image>(imageName);
+
     std::array<AtlasImage::Image, 5> bestFits = {
         AtlasImage::Image{"1"},
         AtlasImage::Image{"2"},
@@ -41,16 +46,13 @@ namespace AtlasModel
 
   auto Model::LoadDataSet(const AtlasCommon::AtlasDataSet dataSet) -> void
   {
-    std::println("Entered LoadDataSet");
-    std::println("Data set attempted to be loaded from map: {}", m_dataSetPaths.at(dataSet));
-    std::println("Current path: {}", std::filesystem::current_path().string());
+    if(m_images.size() > 0)
+      m_images.clear();
+
     const std::filesystem::path dataSetPath{std::filesystem::current_path()/=m_dataSetPaths.at(dataSet)};
-    std::println("Loading dataset: {}", dataSetPath.string());
     std::ranges::for_each(std::filesystem::directory_iterator{dataSetPath}, [&,this](const auto& entry)
     {
-      std::println("Image found: {}", entry.path().string());
       m_images.emplace_back(std::make_unique<AtlasImage::Image>(entry.path().string()));
-      std::println("Image loaded: {}", m_images.back()->GetImageName());
     });
 
     if(m_images.empty())
@@ -90,5 +92,10 @@ namespace AtlasModel
 
   auto Model::InitializeModel() -> void
   {
+  }
+
+  auto Model::CalculateMatchScore() const -> double
+  {
+    return 0.0; 
   }
 }
