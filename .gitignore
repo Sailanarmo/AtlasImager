@@ -1,0 +1,6 @@
+/build/
+/.vscode/
+*.png
+*.jpg
+*.tif
+*.tiff
