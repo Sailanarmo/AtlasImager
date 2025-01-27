@@ -2,6 +2,8 @@
 
 #include <QFrame>
 
+class QCloseEvent;
+
 namespace AtlasGUI
 {
   class AtlasMainWindow : public QFrame
@@ -11,6 +13,9 @@ namespace AtlasGUI
   public:
     AtlasMainWindow(QWidget* parent = nullptr);
     ~AtlasMainWindow() = default;
+
+  protected:
+    auto closeEvent(QCloseEvent* event) -> void override;
 
   private:
     auto Initialize() -> void;

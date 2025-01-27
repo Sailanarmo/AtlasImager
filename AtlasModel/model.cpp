@@ -21,7 +21,7 @@ namespace AtlasModel
     {AtlasCommon::AtlasDataSet::PAG, "AtlasModel/Dataset/PAG"}
   };
 
-  Model::Model()
+  Model::Model(std::atomic<bool>& shut_down) : m_shutDown{shut_down}
   {
     InitializeModel();
   }
@@ -85,7 +85,11 @@ namespace AtlasModel
         auto dataSet = static_cast<AtlasCommon::AtlasDataSet>(std::stoi(argument));
         LoadDataSet(dataSet);
       }
-
+      else if(command == "Shutdown")
+      {
+        std::println("Shutting down model message received");
+        m_shutDown = true;
+      }
     }
 
   }

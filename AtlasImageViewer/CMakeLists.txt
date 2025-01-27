@@ -8,4 +8,6 @@ target_include_directories(
   ${Qt6OpenGL_INCLUDE_DIRS}
 )
 
+target_link_libraries(AtlasImageViewer Qt6::OpenGL)
+
 add_library(Atlas::ImageViewer ALIAS AtlasImageViewer)
