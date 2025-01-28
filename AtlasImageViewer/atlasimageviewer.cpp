@@ -17,7 +17,14 @@ namespace AtlasImageViewer
 
   ImageViewer::~ImageViewer()
   {
-    //CleanUp();
+    CleanUp();
+    m_offscreensurface.reset();
+    
+    std::ranges::for_each(m_fbos, [](auto& fbo){
+      if(fbo.first)
+        fbo.first.reset();
+    });
+
   }
 
   auto ImageViewer::LoadImage(const std::string_view imagePath) -> void
@@ -39,21 +46,101 @@ namespace AtlasImageViewer
     this->update();
   }
 
+  auto ImageViewer::CreateImage(const std::string_view imagePath) -> QImage
+  {
+    auto image = QImage(imagePath.data());
+    auto glImage = image.convertToFormat(QImage::Format_RGBA8888);
+    return glImage;
+  }
+
+  auto ImageViewer::CreateNewContext() -> std::unique_ptr<QOpenGLContext>
+  {
+    auto newContext = std::make_unique<QOpenGLContext>();
+    newContext->setFormat(this->context()->format());
+    newContext->setShareContext(this->context());
+    newContext->create();
+    return newContext;
+  }
+
+  auto ImageViewer::CreateTexture(const QImage& image, QOpenGLFunctions* gl_funcs) -> GLuint
+  {
+    auto textureId = GLuint{};
+
+    gl_funcs->glGenTextures(1, &textureId);
+    gl_funcs->glBindTexture(GL_TEXTURE_2D, textureId);
+    gl_funcs->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, image.constBits());
+    gl_funcs->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    gl_funcs->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    gl_funcs->glBindTexture(GL_TEXTURE_2D, 0);
+
+    return textureId;
+  }
+  
+  auto ImageViewer::CreateFrameBuffer(const QSize size) -> std::unique_ptr<QOpenGLFramebufferObject>
+  {
+    auto fboFormat = QOpenGLFramebufferObjectFormat{};
+    fboFormat.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+    auto fbo = std::make_unique<QOpenGLFramebufferObject>(size, fboFormat);
+
+    return fbo;
+  }
+
+  auto ImageViewer::AddFBOToArray(std::unique_ptr<QOpenGLFramebufferObject>&& fbo, const double weight) -> void
+  {
+    if(m_fbos[0].first == nullptr)
+    {
+      m_fbos[0].first = std::move(fbo);
+      m_fbos[0].second = weight;
+    }
+    else
+    {
+      auto minWeight = std::ranges::min_element(m_fbos, [](const auto& lhs, const auto& rhs)
+      {
+        return lhs.second < rhs.second;
+      });
+
+      if (weight > minWeight->second)
+      {
+        auto minWeightIndex = std::distance(m_fbos.begin(), minWeight);
+        m_fbos[minWeightIndex].second = weight;
+        m_fbos[minWeightIndex].first = std::move(fbo);
+      }
+    }
+    std::println("Successfully added FBO to array");
+  }
+
   // should this be a unique_ptr of an OpenCV Mat passed in by rvalue?
   // or should this be an array of images already sorted? 
-  auto ImageViewer::AddImage(const unsigned char* data, const int weight) -> void
+  auto ImageViewer::AddImage(std::string&& imagePath, const double weight) -> void
   {
-    auto minWeight = std::ranges::min_element(m_fbos, [](const auto& lhs, const auto& rhs)
-    {
-      return lhs.second < rhs.second;
-    });
+    const auto curImagePath = std::move(imagePath);
 
-    if (weight > minWeight->second)
+    std::println("Creating QImage");
+    auto image = CreateImage(curImagePath);
+    std::println("Creating a Context");
+    auto tempContext = std::move(CreateNewContext());
+
+    tempContext->makeCurrent(m_offscreensurface.get());
+
+    auto gl_funcs = tempContext->functions();
+    std::println("Creating a new texture");
+    auto textureId = CreateTexture(image, gl_funcs);
+
+    auto fbo = CreateFrameBuffer(image.size());
+
+    if(!fbo->isValid())
     {
-      auto minWeightIndex = std::distance(m_fbos.begin(), minWeight);
-      m_fbos[minWeightIndex].second = weight;
-      m_fbos[minWeightIndex].first = std::make_unique<QOpenGLFramebufferObject>(QSize{128, 128});
+      fbo.reset();
+      gl_funcs->glDeleteTextures(1, &textureId);
     }
+
+    fbo->bind();
+    gl_funcs->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
+    fbo->release();
+
+    std::println("Adding FBO to Array.");
+    AddFBOToArray(std::move(fbo), weight);
+
   }
 
   auto ImageViewer::HandleMessage(const char* message) -> void
@@ -78,7 +165,18 @@ namespace AtlasImageViewer
       }
       else if (command == "AddImage")
       {
-        //AddImage(argument);
+        std::println("ImageViewer::HandleMessage:: AddImage");
+        std::println("ImageViewer::HandleMessage: argument: {}", argument);
+        auto colonPos = argument.find(':');
+        if(colonPos != std::string::npos)
+        {
+          auto imagePath = argument.substr(0, colonPos);
+          auto weight = std::stod(argument.substr(colonPos + 1));
+
+          std::println("ImageViewer::HandleMessage: adding the image {} with weight: {}", imagePath, weight);
+          AddImage(std::move(imagePath),weight);
+          //TODO: Blend and render the images.
+        }
       }
     }
   }
@@ -86,6 +184,9 @@ namespace AtlasImageViewer
   auto ImageViewer::initializeGL() -> void
   {
     initializeOpenGLFunctions();
+    m_offscreensurface = std::make_unique<QOffscreenSurface>();
+    m_offscreensurface->setFormat(this->context()->format());
+    m_offscreensurface->create();
   }
 
   auto ImageViewer::resizeGL(int w, int h) -> void

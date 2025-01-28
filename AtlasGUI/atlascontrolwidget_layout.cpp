@@ -12,6 +12,8 @@
 #include <QFileDialog>
 #include <QPushButton>
 
+#include <print>
+
 namespace AtlasGUI
 {
   AtlasControlWidgetLayout::AtlasControlWidgetLayout(QWidget* parent) : QVBoxLayout{parent}
@@ -88,6 +90,13 @@ namespace AtlasGUI
       findBestMatchButton->setEnabled(true); 
       auto args = std::string{"LoadImage," + path};
       messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
+    });
+
+    QObject::connect(findBestMatchButton, &QPushButton::clicked, [lineEdit, messenger](){
+      auto imgToProcess = lineEdit->text().toStdString();
+      auto args = std::string{"GetBestFits," + imgToProcess};
+      std::println("Sending Model to get Best Fits!");
+      messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasModel);
     });
     
     this->addWidget(m_imagePathWidget);

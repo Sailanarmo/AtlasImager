@@ -35,16 +35,20 @@ namespace AtlasModel
 
     auto atlasDescriptor = AtlasImage::Image{img.GetImageName()};
     atlasDescriptor.CloneData(descriptors);
+    std::println("Query Descriptors obtained and Data cloned.");
     return atlasDescriptor;
   }
 
   auto Model::CalculateMatchScore(const AtlasImage::Image& targetDescriptors, const AtlasImage::Image& modelDescriptors) -> std::pair<std::string,double>
   {
+    std::println("Calculating the score.");
     auto brute_forceMatcher = cv::BFMatcher(cv::NORM_HAMMING, true);
     auto matches = std::vector<cv::DMatch>{};
 
+    std::println("Attempting to get matches");
     brute_forceMatcher.match(*targetDescriptors.GetImage(), *modelDescriptors.GetImage(), matches);
 
+    std::println("Caculating the distances");
     auto totalDistance = double{0.0};
 
     std::ranges::for_each(matches, [&totalDistance](const cv::DMatch& match){
@@ -70,16 +74,16 @@ namespace AtlasModel
     );
 
     auto scores = candidateDescriptors 
-    | std::views::transform([this,img](const AtlasImage::Image& descriptor) { 
-        return this->CalculateMatchScore(img,descriptor); 
+    | std::views::transform([this,imgDescriptors](const AtlasImage::Image& descriptor) { 
+        return this->CalculateMatchScore(imgDescriptors,descriptor); 
       }) 
     | std::ranges::to<std::vector<std::pair<std::string,double>>>();
 
     std::ranges::sort(scores, [](const auto& a, const auto& b) { return a.second < b.second; });
 
-    bestFits[0] = scores[0].first;
-    bestFits[1] = scores[1].first;
-    bestFits[2] = scores[2].first;
+    bestFits[0] = std::string{scores[0].first + ":" + std::to_string(scores[0].second)};
+    bestFits[1] = std::string{scores[1].first + ":" + std::to_string(scores[1].second)};
+    bestFits[2] = std::string{scores[2].first + ":" + std::to_string(scores[2].second)};
 
     return bestFits;
   }
@@ -113,6 +117,7 @@ namespace AtlasModel
 
       if(command == "GetBestFits")
       {
+        std::println("GetBestFits called");
         auto bestFits = GetBestFits(argument);
         std::ranges::for_each(bestFits, [](const auto& image)
         {
