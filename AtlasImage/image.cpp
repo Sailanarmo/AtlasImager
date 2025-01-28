@@ -10,13 +10,18 @@ namespace AtlasImage
   Image::Image(const std::string_view imageName) : m_imageName{imageName}
   {
     std::println("Image constructor called with: {}", imageName);
-    m_image = std::make_shared<cv::Mat>(cv::imread(std::string{imageName}.c_str()));
+    m_image = std::make_shared<cv::Mat>(cv::imread(std::string{imageName}.c_str(), cv::IMREAD_GRAYSCALE));
     std::println("Image created with size: {}x{}", m_image->cols, m_image->rows);
   }
 
   auto Image::SetImage(const std::string_view imageName) -> void
   {
-    m_image = std::make_unique<cv::Mat>(cv::imread(std::string{imageName}.c_str()));
+    m_image = std::make_shared<cv::Mat>(cv::imread(std::string{imageName}.c_str()));
+  }
+
+  auto Image::CloneData(const cv::Mat& toClone) -> void
+  {
+    m_image = std::make_shared<cv::Mat>(toClone.clone());
   }
 
   auto Image::GetImageName() const -> std::string_view

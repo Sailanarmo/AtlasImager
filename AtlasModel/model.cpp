@@ -21,26 +21,66 @@ namespace AtlasModel
     {AtlasCommon::AtlasDataSet::PAG, "AtlasModel/Dataset/PAG"}
   };
 
-  Model::Model(std::atomic<bool>& shut_down) : m_shutDown{shut_down}
+  Model::Model()
   {
     InitializeModel();
   }
 
-  // Should this return by rvalue reference?
-  auto Model::GetBestFits(const std::string_view imageName) -> std::array<AtlasImage::Image, 5>
+  auto Model::GetQueryDescriptors(const AtlasImage::Image& img) -> AtlasImage::Image
   {
-    if(m_imageToProcess)
-      m_imageToProcess.reset();
+    cv::Mat descriptors;
+    cv::Ptr<cv::ORB> detector = cv::ORB::create();
+    auto keyPoints = std::vector<cv::KeyPoint>{};
+    detector->detectAndCompute(*img.GetImage(), cv::Mat(), keyPoints, descriptors);
 
-    m_imageToProcess = std::make_unique<AtlasImage::Image>(imageName);
+    auto atlasDescriptor = AtlasImage::Image{img.GetImageName()};
+    atlasDescriptor.CloneData(descriptors);
+    return atlasDescriptor;
+  }
 
-    std::array<AtlasImage::Image, 5> bestFits = {
-        AtlasImage::Image{"1"},
-        AtlasImage::Image{"2"},
-        AtlasImage::Image{"3"},
-        AtlasImage::Image{"4"},
-        AtlasImage::Image{"5"}
-    };
+  auto Model::CalculateMatchScore(const AtlasImage::Image& targetDescriptors, const AtlasImage::Image& modelDescriptors) -> std::pair<std::string,double>
+  {
+    auto brute_forceMatcher = cv::BFMatcher(cv::NORM_HAMMING, true);
+    auto matches = std::vector<cv::DMatch>{};
+
+    brute_forceMatcher.match(*targetDescriptors.GetImage(), *modelDescriptors.GetImage(), matches);
+
+    auto totalDistance = double{0.0};
+
+    std::ranges::for_each(matches, [&totalDistance](const cv::DMatch& match){
+      totalDistance += match.distance;
+    });
+
+    return std::make_pair(std::string{modelDescriptors.GetImageName()}, double{totalDistance/matches.size()});
+  }
+
+  // Should this return by rvalue reference?
+  auto Model::GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>
+  {
+    auto bestFits = std::array<std::string,3>{};
+    auto img = AtlasImage::Image{imageName.data()};
+    auto imgDescriptors = GetQueryDescriptors(img);
+
+    auto candidateDescriptors = std::vector<AtlasImage::Image>{};
+
+    std::ranges::transform(m_images,std::back_inserter(candidateDescriptors),
+      [this](const AtlasImage::Image& image){ 
+        return GetQueryDescriptors(image); 
+      }
+    );
+
+    auto scores = candidateDescriptors 
+    | std::views::transform([this,img](const AtlasImage::Image& descriptor) { 
+        return this->CalculateMatchScore(img,descriptor); 
+      }) 
+    | std::ranges::to<std::vector<std::pair<std::string,double>>>();
+
+    std::ranges::sort(scores, [](const auto& a, const auto& b) { return a.second < b.second; });
+
+    bestFits[0] = scores[0].first;
+    bestFits[1] = scores[1].first;
+    bestFits[2] = scores[2].first;
+
     return bestFits;
   }
 
@@ -52,7 +92,7 @@ namespace AtlasModel
     const std::filesystem::path dataSetPath{std::filesystem::current_path()/=m_dataSetPaths.at(dataSet)};
     std::ranges::for_each(std::filesystem::directory_iterator{dataSetPath}, [&,this](const auto& entry)
     {
-      m_images.emplace_back(std::make_unique<AtlasImage::Image>(entry.path().string()));
+      m_images.emplace_back(AtlasImage::Image(entry.path().string()));
     });
 
     if(m_images.empty())
@@ -76,7 +116,8 @@ namespace AtlasModel
         auto bestFits = GetBestFits(argument);
         std::ranges::for_each(bestFits, [](const auto& image)
         {
-          AtlasMessenger::Messenger::Instance().SendMessage(image.GetImageName().data(), AtlasCommon::AtlasClasses::AtlasImageViewer);
+          auto msg = std::string{"AddImage," + image};
+          AtlasMessenger::Messenger::Instance().SendMessage(msg.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
         });
       }
       else if(command == "LoadDataSet")
@@ -84,11 +125,6 @@ namespace AtlasModel
         std::println("Loading dataset: {}", argument);
         auto dataSet = static_cast<AtlasCommon::AtlasDataSet>(std::stoi(argument));
         LoadDataSet(dataSet);
-      }
-      else if(command == "Shutdown")
-      {
-        std::println("Shutting down model message received");
-        m_shutDown = true;
       }
     }
 
@@ -98,8 +134,4 @@ namespace AtlasModel
   {
   }
 
-  auto Model::CalculateMatchScore() const -> double
-  {
-    return 0.0; 
-  }
 }

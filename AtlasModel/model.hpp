@@ -8,29 +8,28 @@
 #include <string>
 #include <vector>
 #include <string_view>
-#include <atomic>
 
 namespace AtlasModel
 {
   class Model
   {
     public:
-      Model(std::atomic<bool>& shut_down);
+      Model();
 
-      auto GetBestFits(const std::string_view imageName) -> std::array<AtlasImage::Image, 5>;
+      auto GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>;
       auto LoadDataSet(const AtlasCommon::AtlasDataSet dataSet) -> void;
 
       auto HandleMessage(const char* message) -> void;
     
     private:
-      std::atomic<bool>& m_shutDown;
       static const std::unordered_map<AtlasCommon::AtlasDataSet, std::string> m_dataSetPaths; 
 
-      std::vector<std::unique_ptr<AtlasImage::Image>> m_images;
-      std::unique_ptr<AtlasImage::Image> m_imageToProcess{nullptr};
+      std::vector<AtlasImage::Image> m_images;
 
       auto InitializeModel() -> void;
-      auto CalculateMatchScore() const -> double;
+      auto GetQueryDescriptors(const AtlasImage::Image& img) -> AtlasImage::Image;
+      auto CalculateMatchScore(const AtlasImage::Image& targetDescriptors, 
+                               const AtlasImage::Image& modelDescriptors) -> std::pair<std::string, double>;
       
   };
 }
