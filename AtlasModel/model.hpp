@@ -9,6 +9,15 @@
 #include <vector>
 #include <string_view>
 
+/*
+* Atlas Model is the class that does the heavy lifting. This attempts to find the best 3 matches
+* using OpenCV's BFMatcher (I believe this stands for Brute Force). It will then return the filename
+* along with their scores. 
+*
+* TODO: This needs to be tested to see if the best matches are indeed the best matches. It is highly
+*       possible that it is trying to match the entire image against the atlas model selected. If an
+*       area of interest needs to be selected that work will need to be passed from Qt to here somehow.
+*/
 namespace AtlasModel
 {
   class Model

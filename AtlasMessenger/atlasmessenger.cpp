@@ -21,6 +21,7 @@ namespace AtlasMessenger
     m_model = model;
   }
 
+  // This function handles the message based on the classID it recieves.
   auto Messenger::SendMessage(const char* message, const AtlasCommon::AtlasClasses classID) -> void
   {
     // Keep it simple!! 

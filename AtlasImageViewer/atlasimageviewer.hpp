@@ -12,6 +12,20 @@
 
 class QImage;
 
+/*
+* The Atlas Image Viewer is the renderer itself. This will rander an image by binding that
+* image data to a QOpenGLFramebufferObject. That then can get added to a QOpenGLTexsture
+* which will display the image in the renderer. 
+* 
+* TODO: Add a slot to this class that will swap out the images stored in m_fbos when the 
+*       best 3 matches are found.
+*
+*       Using blending, a technique in Graphics Progamming, overlay the best matching atlas
+*       model image over the XRay image. Or, find a way to overlay the best matching atlas
+*       model image over the XRay image using a 3D Volume (like a cube) where the front of
+*       the cube (The Z-Axis [Towards the Monitor]) is the atlas model image and the back of
+*       the cube (The -Z-Axis [Going into the Monitor]) is the XRay image.   
+*/
 namespace AtlasImageViewer
 {
   class ImageViewer : public QOpenGLWindow, protected QOpenGLFunctions
@@ -30,7 +44,7 @@ namespace AtlasImageViewer
       auto paintGL() -> void override;
     
     private:
-      // Framebuffer objects for rendering, takes the 5 best matched images and 
+      // Framebuffer objects for rendering, takes the 3 best matched images and 
       // sorts them by weight
       std::array<std::pair<std::unique_ptr<QOpenGLFramebufferObject>, int>, 3> m_fbos;
       std::unique_ptr<QOpenGLFramebufferObject> m_fbo{nullptr};

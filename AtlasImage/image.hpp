@@ -9,6 +9,11 @@ namespace cv
   class Mat;
 }
 
+/*
+* This class is a wrapper for OpenCV Images. This wraps the OpenCV image object in a shared pointer
+* that is then passed around when modifications are needed.
+*/
+
 namespace AtlasImage
 {
   class Image

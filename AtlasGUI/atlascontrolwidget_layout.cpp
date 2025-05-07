@@ -111,7 +111,8 @@ namespace AtlasGUI
     layout->addWidget(label);
     this->addWidget(m_renderingOptionsWidget);
   }
-    
+   
+  // TODO: Create a signal that will connect to a slot in the AtlasImageViewer to change images.
   auto AtlasControlWidgetLayout::BuildImageNavigationWidget() -> void
   {
     m_imageNavigationWidget = new QWidget{};

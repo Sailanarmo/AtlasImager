@@ -18,6 +18,15 @@ namespace AtlasModel
   class Model;
 }
 
+
+/*
+* The Atlas Messenger is a singleton class to separate the work from the GUI. Let Qt handle Qt front end updates
+* And the model will handle the heavy lifting. This is common in a model/view practice where we don't want to 
+* lag the UI.
+*
+* Sending a message allow direct communication between the classes. 
+* ex: AtlasMessenger::Messenger.Instance()->SendMessage("I am a command", AtlasCommon::AtlasClasses::Model);
+*/
 namespace AtlasMessenger
 {
   class Messenger
