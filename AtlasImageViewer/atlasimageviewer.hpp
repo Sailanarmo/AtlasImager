@@ -36,6 +36,8 @@ namespace AtlasImageViewer
       ~ImageViewer();
 
       auto AddImage(std::string&& imagePath, const double weight) -> void;
+      auto OnNextButtonPressed(int index) -> void;
+      auto OnPrevButtonPressed(int index) -> void;
       auto HandleMessage(const char* message) -> void;
 
     protected:

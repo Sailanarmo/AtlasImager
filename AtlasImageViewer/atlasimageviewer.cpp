@@ -178,6 +178,13 @@ namespace AtlasImageViewer
           //TODO: Blend and render the images.
         }
       }
+      else if (command == "NextButton") {
+          // std::println("Next Button was Pressed! We are in the backend.");
+          OnNextButtonPressed(0);
+      }
+      else if (command == "PrevButton") {
+          OnPrevButtonPressed(0);
+      }
     }
   }
 
@@ -235,5 +242,13 @@ namespace AtlasImageViewer
       glDeleteTextures(1, &textureId);
       m_texture.reset();
     }
+  }
+
+  auto ImageViewer::OnNextButtonPressed(int index) -> void {
+      std::println("Next Button was Pressed! We are in the backend.");
+  }
+
+  auto ImageViewer::OnPrevButtonPressed(int index) -> void {
+      std::println("Prev Button was Pressed! We are in the backend.");
   }
 }

@@ -118,10 +118,28 @@ namespace AtlasGUI
     m_imageNavigationWidget = new QWidget{};
     auto layout = new QVBoxLayout{m_imageNavigationWidget};
     auto label = new QLabel{"Image Navigation"};
-    auto button = new QPushButton{"Next Image"};
+    auto nextButton = new QPushButton{"Next Image"};
+    auto prevButton = new QPushButton{"Previous Image"};
     layout->addWidget(label);
-    layout->addWidget(button);
+    layout->addWidget(nextButton);
+    layout->addWidget(prevButton);
     this->addWidget(m_imageNavigationWidget);
+
+    auto lineEdit = new QLineEdit{};
+    auto messenger = &AtlasMessenger::Messenger::Instance();
+
+    // Next Button and Prev Button Handling
+    QObject::connect(nextButton, &QPushButton::clicked, [lineEdit, messenger](){
+      std::println("Next button clicked! Sending to back end");
+      auto argsNext = std::string("NextButton,");
+      messenger->SendMessage(argsNext.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
+    });
+    QObject::connect(prevButton, &QPushButton::clicked, [lineEdit, messenger]() {
+       std::println("Prev button clicked! Sending to back end");
+       auto argsPrev = std::string("PrevButton,");
+       messenger->SendMessage(argsPrev.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
+    });
+
   }
 
   auto AtlasControlWidgetLayout::LoadModel() -> void
@@ -132,4 +150,6 @@ namespace AtlasGUI
     AtlasMessenger::Messenger::Instance().SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasModel);
     m_isModelLoaded = true;
   }
+
+
 }
