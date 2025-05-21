@@ -131,12 +131,12 @@ namespace AtlasGUI
     // Next Button and Prev Button Handling
     QObject::connect(nextButton, &QPushButton::clicked, [lineEdit, messenger](){
       std::println("Next button clicked! Sending to back end");
-      auto argsNext = std::string("NextButton,");
+      auto argsNext = std::string("NextButton,Test");
       messenger->SendMessage(argsNext.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
     QObject::connect(prevButton, &QPushButton::clicked, [lineEdit, messenger]() {
        std::println("Prev button clicked! Sending to back end");
-       auto argsPrev = std::string("PrevButton,");
+       auto argsPrev = std::string("PrevButton,Test");
        messenger->SendMessage(argsPrev.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
 

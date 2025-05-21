@@ -180,10 +180,10 @@ namespace AtlasImageViewer
       }
       else if (command == "NextButton") {
           // std::println("Next Button was Pressed! We are in the backend.");
-          OnNextButtonPressed(0);
+          OnNextButtonPressed();
       }
       else if (command == "PrevButton") {
-          OnPrevButtonPressed(0);
+          OnPrevButtonPressed();
       }
     }
   }
@@ -244,11 +244,17 @@ namespace AtlasImageViewer
     }
   }
 
-  auto ImageViewer::OnNextButtonPressed(int index) -> void {
+  auto ImageViewer::OnNextButtonPressed() -> void {
       std::println("Next Button was Pressed! We are in the backend.");
+//      std::swap(m_fbo, m_fbos[0].first);
+//      std::ranges::rotate(m_fbos, m_fbos.begin() + 1);
+//      this->update();
   }
 
-  auto ImageViewer::OnPrevButtonPressed(int index) -> void {
+  auto ImageViewer::OnPrevButtonPressed() -> void {
       std::println("Prev Button was Pressed! We are in the backend.");
+//      std::swap(m_fbo, m_fbos[0].first);
+//      std::ranges::rotate(m_fbos, m_fbos.begin() - 1);
+//      this->update();
   }
 }
