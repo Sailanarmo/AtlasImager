@@ -60,6 +60,7 @@ namespace AtlasImageViewer
       auto CreateNewContext() -> std::unique_ptr<QOpenGLContext>;
       auto CreateTexture(const QImage& image, QOpenGLFunctions* gl_funcs) -> GLuint;
       auto CreateFrameBuffer(const QSize size) -> std::unique_ptr<QOpenGLFramebufferObject>;
+      auto DrawToFBO(QOpenGLFramebufferObject* fbo, QOpenGLFunctions* gl_funcs, const GLuint textureId) -> void;
       auto AddFBOToArray(std::unique_ptr<QOpenGLFramebufferObject>&& fbo, const double weight) -> void;
       
   };
