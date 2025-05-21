@@ -36,7 +36,7 @@ auto main(int argc, char** argv) -> int
   });
 
   AtlasGUI::AtlasMainWindow mainWindow{};
-  std::jthread ModelApp(LaunchModelApp);
+  std::thread ModelApp(LaunchModelApp);
   ModelApp.detach();
   mainWindow.resize(800, 600);
   mainWindow.show();
