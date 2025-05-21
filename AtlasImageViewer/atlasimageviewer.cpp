@@ -30,26 +30,55 @@ namespace AtlasImageViewer
   auto ImageViewer::LoadImage(const std::string_view imagePath) -> void
   {
     std::println("ImageViewer::LoadImage: imagePath: {}", imagePath);
+    this->makeCurrent();
 
     if(m_texture)
       CleanUp();
 
     auto image = QImage{imagePath.data()}; 
 
-    auto glImage = image.convertToFormat(QImage::Format_RGBA8888);
+    auto glImage = image.convertToFormat(QImage::Format_RGBA8888).mirrored();
 
-    m_texture = std::make_unique<QOpenGLTexture>(glImage.mirrored());
-    m_texture->setMinificationFilter(QOpenGLTexture::Linear);
-    m_texture->setMagnificationFilter(QOpenGLTexture::Linear);
-    m_texture->setWrapMode(QOpenGLTexture::ClampToEdge);
+    auto gl_funcs = this->context()->functions();
+    auto texture = CreateTexture(glImage, gl_funcs);
+
+    m_fbo = CreateFrameBuffer(image.size());
+
+    DrawToFBO(m_fbo.get(), gl_funcs, texture);
+
+    gl_funcs->glDeleteTextures(1, &texture);
 
     this->update();
+  }
+
+  auto ImageViewer::DrawToFBO(QOpenGLFramebufferObject* fbo, QOpenGLFunctions* gl_funcs, const GLuint textureId) -> void
+  {
+    fbo->bind();
+    glViewport(0, 0, fbo->size().width(), fbo->size().height());
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+
+    // Render a textured quad
+    glBegin(GL_QUADS);
+      glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f, -1.0f);
+      glTexCoord2f(1.0f, 0.0f); glVertex2f( 1.0f, -1.0f);
+      glTexCoord2f(1.0f, 1.0f); glVertex2f( 1.0f,  1.0f);
+      glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0f,  1.0f);
+    glEnd();
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+    fbo->release();
+    glViewport(0, 0, this->width(), this->height());
   }
 
   auto ImageViewer::CreateImage(const std::string_view imagePath) -> QImage
   {
     auto image = QImage(imagePath.data());
-    auto glImage = image.convertToFormat(QImage::Format_RGBA8888);
+    auto glImage = image.convertToFormat(QImage::Format_RGBA8888).mirrored();
     return glImage;
   }
 
@@ -134,9 +163,7 @@ namespace AtlasImageViewer
       gl_funcs->glDeleteTextures(1, &textureId);
     }
 
-    fbo->bind();
-    gl_funcs->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
-    fbo->release();
+    DrawToFBO(fbo.get(), gl_funcs, textureId);
 
     std::println("Adding FBO to Array.");
     AddFBOToArray(std::move(fbo), weight);
@@ -205,13 +232,17 @@ namespace AtlasImageViewer
   {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (m_texture) 
+    if (m_fbo && m_fbo->isValid()) 
     {
+      std::println("ImageViewer::paintGL: m_fbo is valid");
       glEnable(GL_TEXTURE_2D);
-      glBindTexture(GL_TEXTURE_2D, m_texture->textureId());
+      glBindTexture(GL_TEXTURE_2D, m_fbo->texture());
+
+      std::println("ImageViewer::paintGL: m_fbo textureId: {}", m_fbo->texture());
+      std::println("ImageViewer::paintGL: m_fbo size (WxH): {}x{}", m_fbo->size().width(), m_fbo->size().height());
 
       auto windowAspectRatio = static_cast<float>(this->width()) / static_cast<float>(this->height());
-      auto imageAspectRatio = static_cast<float>(m_texture->width()) / static_cast<float>(m_texture->height());
+      auto imageAspectRatio = static_cast<float>(m_fbo->size().width()) / static_cast<float>(m_fbo->size().height());
 
       auto scaleX = 1.0f;
       auto scaleY = 1.0f;
