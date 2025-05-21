@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-find_package(OpenCV REQUIRED)
-find_package(Qt6 COMPONENTS Core Gui Widgets OpenGL REQUIRED HINTS /opt/Qt/6.8.1/gcc_64)
+find_package(OpenCV REQUIRED HINTS ${CMAKE_CURRENT_LIST_DIR}/thirdparty/opencv/install)
+find_package(Qt6 COMPONENTS Core Gui Widgets OpenGL REQUIRED HINTS /Users/jgibb/Qt/6.9.0/macos)
 
 qt_standard_project_setup()
 

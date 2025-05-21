@@ -1,0 +1,87 @@
+{
+	"BUILD_DIR" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/cmake-build-debug/AtlasImage/Image_autogen",
+	"CMAKE_BINARY_DIR" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/cmake-build-debug",
+	"CMAKE_CURRENT_BINARY_DIR" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/cmake-build-debug/AtlasImage",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/AtlasImage",
+	"CMAKE_EXECUTABLE" : "/Applications/CLion.app/Contents/bin/cmake/mac/aarch64/bin/cmake",
+	"CMAKE_LIST_FILES" : 
+	[
+		"/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/AtlasImage/CMakeLists.txt"
+	],
+	"CMAKE_SOURCE_DIR" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager",
+	"DEP_FILE" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/cmake-build-debug/AtlasImage/Image_autogen/deps",
+	"DEP_FILE_RULE_NAME" : "Image_autogen/timestamp",
+	"HEADERS" : 
+	[
+		[
+			"/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/AtlasImage/image.hpp",
+			"MU",
+			"EWIEGA46WW/moc_image.cpp",
+			null
+		]
+	],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/cmake-build-debug/AtlasImage/Image_autogen/include",
+	"MOC_COMPILATION_FILE" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/cmake-build-debug/AtlasImage/Image_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : [],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/AtlasImage",
+		"/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/thirdparty/opencv/install/include/opencv4",
+		"/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.4.sdk/usr/include/c++/v1",
+		"/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include",
+		"/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.4.sdk/usr/include",
+		"/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"
+	],
+	"MOC_MACRO_NAMES" : 
+	[
+		"Q_OBJECT",
+		"Q_GADGET",
+		"Q_NAMESPACE",
+		"Q_NAMESPACE_EXPORT",
+		"Q_GADGET_EXPORT",
+		"Q_ENUM_NS"
+	],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : false,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/usr/bin/g++",
+		"-std=gnu++2b",
+		"-dM",
+		"-E",
+		"-c",
+		"/Applications/CLion.app/Contents/bin/cmake/mac/aarch64/share/cmake-3.27/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/cmake-build-debug/AtlasImage/Image_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : [],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 8,
+	"PARSE_CACHE_FILE" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/cmake-build-debug/AtlasImage/CMakeFiles/Image_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/Users/jgibb/Qt/6.9.0/macos/libexec/moc",
+	"QT_UIC_EXECUTABLE" : "/Users/jgibb/Qt/6.9.0/macos/libexec/uic",
+	"QT_VERSION_MAJOR" : 6,
+	"QT_VERSION_MINOR" : 9,
+	"SETTINGS_FILE" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/cmake-build-debug/AtlasImage/CMakeFiles/Image_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[
+			"/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/AtlasImage/image.cpp",
+			"MU",
+			null
+		]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : [],
+	"UIC_UI_FILES" : [],
+	"VERBOSITY" : 0
+}

@@ -1,0 +1,354 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4,
+						5
+					],
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						6,
+						7,
+						8
+					]
+				},
+				{
+					"build" : "AtlasGUI",
+					"jsonFile" : "directory-AtlasGUI-Debug-553189c45b02e09ff184.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "AtlasGUI",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				},
+				{
+					"build" : "AtlasImage",
+					"jsonFile" : "directory-AtlasImage-Debug-27ce633ea89cd2fb57f0.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 2,
+					"source" : "AtlasImage",
+					"targetIndexes" : 
+					[
+						12,
+						13,
+						14
+					]
+				},
+				{
+					"build" : "AtlasModel",
+					"jsonFile" : "directory-AtlasModel-Debug-876af4ccc75ad37e95f5.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 3,
+					"source" : "AtlasModel",
+					"targetIndexes" : 
+					[
+						15,
+						16,
+						17
+					]
+				},
+				{
+					"build" : "AtlasMessenger",
+					"jsonFile" : "directory-AtlasMessenger-Debug-3aaef284e1fb3912deb5.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 4,
+					"source" : "AtlasMessenger",
+					"targetIndexes" : 
+					[
+						9,
+						10,
+						11
+					]
+				},
+				{
+					"build" : "AtlasImageViewer",
+					"jsonFile" : "directory-AtlasImageViewer-Debug-7aad6df254fb7d53b949.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 5,
+					"source" : "AtlasImageViewer",
+					"targetIndexes" : 
+					[
+						3,
+						4,
+						5
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4,
+						5
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "AtlasImager",
+					"targetIndexes" : 
+					[
+						6,
+						7,
+						8
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1
+					],
+					"name" : "AtlasGUI",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2
+					],
+					"name" : "Image",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						12,
+						13,
+						14
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						3
+					],
+					"name" : "Model",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						15,
+						16,
+						17
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						4
+					],
+					"name" : "AtlasMessenger",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						9,
+						10,
+						11
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5
+					],
+					"name" : "AtlasImageViewer",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						3,
+						4,
+						5
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 1,
+					"id" : "AtlasGUI::@cb60a8c41d4b51255a5c",
+					"jsonFile" : "target-AtlasGUI-Debug-818c05f2d5de4a634a3b.json",
+					"name" : "AtlasGUI",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "AtlasGUI_autogen::@cb60a8c41d4b51255a5c",
+					"jsonFile" : "target-AtlasGUI_autogen-Debug-909f24b514a78ec3810a.json",
+					"name" : "AtlasGUI_autogen",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "AtlasGUI_autogen_timestamp_deps::@cb60a8c41d4b51255a5c",
+					"jsonFile" : "target-AtlasGUI_autogen_timestamp_deps-Debug-a3933425c2ce1a19b6fc.json",
+					"name" : "AtlasGUI_autogen_timestamp_deps",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "AtlasImageViewer::@d617aa6db562e63526c7",
+					"jsonFile" : "target-AtlasImageViewer-Debug-2cb2d056754e50f7b7db.json",
+					"name" : "AtlasImageViewer",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "AtlasImageViewer_autogen::@d617aa6db562e63526c7",
+					"jsonFile" : "target-AtlasImageViewer_autogen-Debug-301c1bb762cc66f01663.json",
+					"name" : "AtlasImageViewer_autogen",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "AtlasImageViewer_autogen_timestamp_deps::@d617aa6db562e63526c7",
+					"jsonFile" : "target-AtlasImageViewer_autogen_timestamp_deps-Debug-1401231d2e03956f338e.json",
+					"name" : "AtlasImageViewer_autogen_timestamp_deps",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "AtlasImager::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-AtlasImager-Debug-f96ba4a94f6b80c269c7.json",
+					"name" : "AtlasImager",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "AtlasImager_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-AtlasImager_autogen-Debug-f3965ae71bb31fd19836.json",
+					"name" : "AtlasImager_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "AtlasImager_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-AtlasImager_autogen_timestamp_deps-Debug-eec08578e28f32fd0842.json",
+					"name" : "AtlasImager_autogen_timestamp_deps",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "AtlasMessenger::@f3b855f09019e5520f76",
+					"jsonFile" : "target-AtlasMessenger-Debug-c158156c2aacdb62d960.json",
+					"name" : "AtlasMessenger",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "AtlasMessenger_autogen::@f3b855f09019e5520f76",
+					"jsonFile" : "target-AtlasMessenger_autogen-Debug-3d7350527f2c325f30e1.json",
+					"name" : "AtlasMessenger_autogen",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "AtlasMessenger_autogen_timestamp_deps::@f3b855f09019e5520f76",
+					"jsonFile" : "target-AtlasMessenger_autogen_timestamp_deps-Debug-cb7beee3cc97bf0dc86b.json",
+					"name" : "AtlasMessenger_autogen_timestamp_deps",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "Image::@c6f43662bae1472dbb50",
+					"jsonFile" : "target-Image-Debug-2086f3620377c5bb8564.json",
+					"name" : "Image",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "Image_autogen::@c6f43662bae1472dbb50",
+					"jsonFile" : "target-Image_autogen-Debug-41f43c30077e194799a7.json",
+					"name" : "Image_autogen",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "Image_autogen_timestamp_deps::@c6f43662bae1472dbb50",
+					"jsonFile" : "target-Image_autogen_timestamp_deps-Debug-1b705d5c76e794831815.json",
+					"name" : "Image_autogen_timestamp_deps",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "Model::@fe859d450bd34087d348",
+					"jsonFile" : "target-Model-Debug-9e62da0d0adb53102e5f.json",
+					"name" : "Model",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "Model_autogen::@fe859d450bd34087d348",
+					"jsonFile" : "target-Model_autogen-Debug-292fac98a20806744ca1.json",
+					"name" : "Model_autogen",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "Model_autogen_timestamp_deps::@fe859d450bd34087d348",
+					"jsonFile" : "target-Model_autogen_timestamp_deps-Debug-ce219ed3051552638877.json",
+					"name" : "Model_autogen_timestamp_deps",
+					"projectIndex" : 3
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager/cmake-build-debug",
+		"source" : "/Users/jgibb/Documents/Spring_2025/Research/AtlasImager"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}

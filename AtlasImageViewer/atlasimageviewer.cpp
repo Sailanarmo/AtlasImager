@@ -246,15 +246,15 @@ namespace AtlasImageViewer
 
   auto ImageViewer::OnNextButtonPressed() -> void {
       std::println("Next Button was Pressed! We are in the backend.");
-//      std::swap(m_fbo, m_fbos[0].first);
-//      std::ranges::rotate(m_fbos, m_fbos.begin() + 1);
-//      this->update();
+      std::swap(m_fbo, m_fbos[0].first);
+      std::ranges::rotate(m_fbos, m_fbos.begin() + 1);
+      this->update();
   }
 
   auto ImageViewer::OnPrevButtonPressed() -> void {
       std::println("Prev Button was Pressed! We are in the backend.");
-//      std::swap(m_fbo, m_fbos[0].first);
-//      std::ranges::rotate(m_fbos, m_fbos.begin() - 1);
-//      this->update();
+      std::swap(m_fbo, m_fbos[0].first);
+      std::ranges::rotate(m_fbos, m_fbos.end() - 1);
+      this->update();
   }
 }
