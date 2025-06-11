@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QVBoxLayout>
+#include <QPushButton>
 
 class QWidget;
 
@@ -25,6 +26,8 @@ namespace AtlasGUI
     QWidget* m_imagePathWidget{nullptr};
     QWidget* m_renderingOptionsWidget{nullptr};
     QWidget* m_imageNavigationWidget{nullptr};
+    QPushButton* nextButton = nullptr;
+    QPushButton* prevButton = nullptr;
 
     bool m_isModelLoaded{false};
 

@@ -11,6 +11,7 @@
 #include <QLineEdit>
 #include <QFileDialog>
 #include <QPushButton>
+#include <QCheckBox>
 
 #include <print>
 
@@ -92,11 +93,16 @@ namespace AtlasGUI
       messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
 
-    QObject::connect(findBestMatchButton, &QPushButton::clicked, [lineEdit, messenger](){
+    QObject::connect(findBestMatchButton, &QPushButton::clicked, [this, lineEdit, messenger](){
       auto imgToProcess = lineEdit->text().toStdString();
       auto args = std::string{"GetBestFits," + imgToProcess};
       std::println("Sending Model to get Best Fits!");
       messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasModel);
+
+      if (nextButton && prevButton) {
+          nextButton->setEnabled(true);
+          prevButton->setEnabled(true);
+      }
     });
     
     this->addWidget(m_imagePathWidget);
@@ -107,8 +113,18 @@ namespace AtlasGUI
     // TODO: Flesh out the rendering options widget
     m_renderingOptionsWidget = new QWidget{};
     auto layout = new QVBoxLayout{m_renderingOptionsWidget};
-    auto label = new QLabel{"Rendering Options"};
+    auto label = new QLabel("Rendering Options\n\n\nOpacity");
     layout->addWidget(label);
+    // Create slider
+    auto slider = new QSlider(Qt::Horizontal);
+    slider->setTickInterval(10);
+    slider->setRange(0, 100);       // Set min/max values
+    slider->setValue(0);            // Set initial value
+    layout->addWidget(slider);      // Add slider to layout
+    label = new QLabel("\n");
+    auto box = new QCheckBox("Rotation Mode On");
+    layout->addWidget(label);
+    layout->addWidget(box);
     this->addWidget(m_renderingOptionsWidget);
   }
    
@@ -118,11 +134,13 @@ namespace AtlasGUI
     m_imageNavigationWidget = new QWidget{};
     auto layout = new QVBoxLayout{m_imageNavigationWidget};
     auto label = new QLabel{"Image Navigation"};
-    auto nextButton = new QPushButton{"Next Image"};
-    auto prevButton = new QPushButton{"Previous Image"};
+    nextButton = new QPushButton{"Next Image"};
+    prevButton = new QPushButton{"Previous Image"};
     layout->addWidget(label);
     layout->addWidget(nextButton);
     layout->addWidget(prevButton);
+    nextButton->setEnabled(false);
+    prevButton->setEnabled(false);
     this->addWidget(m_imageNavigationWidget);
 
     auto lineEdit = new QLineEdit{};
