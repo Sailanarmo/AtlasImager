@@ -19,8 +19,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7a8acc7c-710e-4248-9bac-b268548ff795" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/AtlasGUI/opacitySlider.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/AtlasGUI/opacitySlider.hpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/AtlasGUI/opacitySliderStyle.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,7 +97,8 @@
       <workItem from="1747934628167" duration="15272000" />
       <workItem from="1748363195758" duration="1181000" />
       <workItem from="1748890514189" duration="4367000" />
-      <workItem from="1749579851904" duration="2098000" />
+      <workItem from="1749579851904" duration="34556000" />
+      <workItem from="1749828823861" duration="8695000" />
     </task>
     <servers />
   </component>
@@ -102,16 +109,5 @@
     <isAutomaticCheckingOnLaunch value="false" />
     <isAutomaticFoundErrors value="true" />
     <isAutomaticReloadCMake value="true" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.cpp</url>
-          <line>156</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

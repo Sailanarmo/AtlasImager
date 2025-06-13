@@ -212,6 +212,9 @@ namespace AtlasImageViewer
       else if (command == "PrevButton") {
           OnPrevButtonPressed();
       }
+//      else if (command == "Slider") {
+//          OnSliderUpdated(std::stoi(argument));
+//      }
     }
   }
 
@@ -287,5 +290,11 @@ namespace AtlasImageViewer
       std::swap(m_fbo, m_fbos[0].first);
       std::ranges::rotate(m_fbos, m_fbos.end() - 1);
       this->update();
+  }
+
+  auto ImageViewer::OnSliderUpdated(int value) -> void {
+      std::println("Slider updated! We are in the backend.");
+      sliderValue = value;
+      std::println("Here is the value: {}", value);
   }
 }

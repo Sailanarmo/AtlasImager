@@ -26,3 +26,10 @@ target_link_libraries(
   Qt6::Core Qt6::Gui Qt6::OpenGL Qt6::Widgets 
   Atlas::GUI Atlas::Messenger Atlas::Model Atlas::ImageViewer
 )
+target_include_directories(AtlasImager PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+)
+set(SOURCES
+        ${CMAKE_SOURCE_DIR}/AtlasGUI/opacitySlider.cpp
+)
+add_library(MyLib ${SOURCES})

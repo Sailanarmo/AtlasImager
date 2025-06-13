@@ -2,6 +2,8 @@
 
 #include "AtlasCommon/atlasenums.hpp"
 #include "AtlasMessenger/atlasmessenger.hpp"
+#include "AtlasImageViewer/atlasimageviewer.hpp"
+#include "opacitySlider.hpp"
 
 #include <ranges>
 #include <algorithm>
@@ -116,16 +118,38 @@ namespace AtlasGUI
     auto label = new QLabel("Rendering Options\n\n\nOpacity");
     layout->addWidget(label);
     // Create slider
-    auto slider = new QSlider(Qt::Horizontal);
-    slider->setTickInterval(10);
-    slider->setRange(0, 100);       // Set min/max values
-    slider->setValue(0);            // Set initial value
-    layout->addWidget(slider);      // Add slider to layout
-    label = new QLabel("\n");
-    auto box = new QCheckBox("Rotation Mode On");
-    layout->addWidget(label);
-    layout->addWidget(box);
-    this->addWidget(m_renderingOptionsWidget);
+    auto label2 = new QLabel("Opacity: 0");
+    OpacitySlider* slider = new OpacitySlider(Qt::Horizontal, 0, 100);
+    layout->addWidget(slider);
+
+    connect(slider, &QSlider::valueChanged, this, [label2](int value){
+      label2->setText(QString("Opacity: %1").arg(value));
+    });
+
+
+
+//    auto slider = new QSlider(Qt::Horizontal);
+//    slider->setRange(0, 100);       // Set min/max values
+//    slider->setValue(0);            // Set initial value
+//    layout->addWidget(slider);      // Add slider to layout
+//    label = new QLabel("\n");
+//    auto box = new QCheckBox("Rotation Mode On");
+//    layout->addWidget(label);
+//    layout->addWidget(box);
+//    this->addWidget(m_renderingOptionsWidget);
+//
+//
+//    auto lineEdit = new QLineEdit{};
+//    auto messenger = &AtlasMessenger::Messenger::Instance();
+//
+//    QObject::connect(slider, &QSlider::valueChanged, [lineEdit, messenger]() {
+//        std::println("Slider adjusted! Sending to back end");
+//        auto argsPrev = std::string("SliderButton,Test");
+//        messenger->SendMessage(argsPrev.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
+//    });
+//    AtlasImageViewer::ImageViewer* m_viewer;
+//    QObject::connect(slider, &QSlider::valueChanged, m_viewer, &AtlasImageViewer::ImageViewer::OnSliderUpdated);
+
   }
    
   // TODO: Create a signal that will connect to a slot in the AtlasImageViewer to change images.

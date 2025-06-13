@@ -38,6 +38,7 @@ namespace AtlasImageViewer
       auto AddImage(std::string&& imagePath, const double weight) -> void;
       auto OnNextButtonPressed() -> void;
       auto OnPrevButtonPressed() -> void;
+      auto OnSliderUpdated(int value) -> void;
       auto HandleMessage(const char* message) -> void;
 
     protected:
@@ -53,6 +54,7 @@ namespace AtlasImageViewer
       std::unique_ptr<QOffscreenSurface> m_offscreensurface{nullptr};
       std::unique_ptr<QOpenGLTexture> m_texture{nullptr};
       GLuint m_textureId;
+      int sliderValue = 0;
 
       auto CleanUp() -> void;
       auto LoadImage(const std::string_view imagePath) -> void;
