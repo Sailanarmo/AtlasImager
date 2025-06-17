@@ -132,31 +132,7 @@ namespace AtlasGUI
         auto args = "Slider," + std::to_string(opacity_value);
         messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
-
-
-
-//    auto slider = new QSlider(Qt::Horizontal);
-//    slider->setRange(0, 100);       // Set min/max values
-//    slider->setValue(0);            // Set initial value
-//    layout->addWidget(slider);      // Add slider to layout
-//    label = new QLabel("\n");
-//    auto box = new QCheckBox("Rotation Mode On");
-//    layout->addWidget(label);
-//    layout->addWidget(box);
     this->addWidget(m_renderingOptionsWidget);
-//
-//
-//    auto lineEdit = new QLineEdit{};
-//    auto messenger = &AtlasMessenger::Messenger::Instance();
-//
-//    QObject::connect(slider, &QSlider::valueChanged, [lineEdit, messenger]() {
-//        std::println("Slider adjusted! Sending to back end");
-//        auto argsPrev = std::string("SliderButton,Test");
-//        messenger->SendMessage(argsPrev.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
-//    });
-//    AtlasImageViewer::ImageViewer* m_viewer;
-//    QObject::connect(slider, &QSlider::valueChanged, m_viewer, &AtlasImageViewer::ImageViewer::OnSliderUpdated);
-
   }
    
   // TODO: Create a signal that will connect to a slot in the AtlasImageViewer to change images.
