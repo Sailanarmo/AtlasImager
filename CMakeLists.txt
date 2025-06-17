@@ -29,7 +29,3 @@ target_link_libraries(
 target_include_directories(AtlasImager PRIVATE
         ${CMAKE_SOURCE_DIR}/src
 )
-set(SOURCES
-        ${CMAKE_SOURCE_DIR}/AtlasGUI/opacitySlider.cpp
-)
-add_library(MyLib ${SOURCES})

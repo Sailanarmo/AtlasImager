@@ -19,13 +19,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7a8acc7c-710e-4248-9bac-b268548ff795" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/AtlasGUI/opacitySlider.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AtlasGUI/opacitySlider.hpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AtlasGUI/opacitySliderStyle.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/AtlasGUI/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasGUI/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -98,7 +95,8 @@
       <workItem from="1748363195758" duration="1181000" />
       <workItem from="1748890514189" duration="4367000" />
       <workItem from="1749579851904" duration="34556000" />
-      <workItem from="1749828823861" duration="8695000" />
+      <workItem from="1749828823861" duration="9478000" />
+      <workItem from="1750166702502" duration="9098000" />
     </task>
     <servers />
   </component>

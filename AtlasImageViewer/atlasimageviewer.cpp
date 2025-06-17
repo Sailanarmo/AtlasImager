@@ -212,9 +212,9 @@ namespace AtlasImageViewer
       else if (command == "PrevButton") {
           OnPrevButtonPressed();
       }
-//      else if (command == "Slider") {
-//          OnSliderUpdated(std::stoi(argument));
-//      }
+      else if (command == "Slider") {
+          OnSliderUpdated(std::stoi(argument));
+      }
     }
   }
 

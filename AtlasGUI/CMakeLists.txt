@@ -5,6 +5,7 @@ add_library(AtlasGUI STATIC
   atlascontrolwidget.cpp
   atlasmainwindow_layout.cpp
   atlasmainwindow.cpp
+  opacitySlider.cpp
 )
 
 target_include_directories(

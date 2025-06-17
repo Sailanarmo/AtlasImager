@@ -115,15 +115,20 @@ namespace AtlasGUI
     // TODO: Flesh out the rendering options widget
     m_renderingOptionsWidget = new QWidget{};
     auto layout = new QVBoxLayout{m_renderingOptionsWidget};
-    auto label = new QLabel("Rendering Options\n\n\nOpacity");
+    auto label = new QLabel("Rendering Options\n\n");
     layout->addWidget(label);
     // Create slider
     auto label2 = new QLabel("Opacity: 0");
+    layout->addWidget(label2);
     OpacitySlider* slider = new OpacitySlider(Qt::Horizontal, 0, 100);
     layout->addWidget(slider);
 
     connect(slider, &QSlider::valueChanged, this, [label2](int value){
-      label2->setText(QString("Opacity: %1").arg(value));
+        std::println("Slider adjusted! Sending to back end");
+        label2->setText(QString("Opacity: %1").arg(value));
+        auto messenger = &AtlasMessenger::Messenger::Instance();
+        auto args = "Slider," + std::to_string(value);
+        messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
 
 
@@ -136,7 +141,7 @@ namespace AtlasGUI
 //    auto box = new QCheckBox("Rotation Mode On");
 //    layout->addWidget(label);
 //    layout->addWidget(box);
-//    this->addWidget(m_renderingOptionsWidget);
+    this->addWidget(m_renderingOptionsWidget);
 //
 //
 //    auto lineEdit = new QLineEdit{};
