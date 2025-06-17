@@ -118,16 +118,18 @@ namespace AtlasGUI
     auto label = new QLabel("Rendering Options\n\n");
     layout->addWidget(label);
     // Create slider
-    auto label2 = new QLabel("Opacity: 0");
+    auto label2 = new QLabel("Opacity: 1.0");
     layout->addWidget(label2);
     OpacitySlider* slider = new OpacitySlider(Qt::Horizontal, 0, 100);
+    slider->setValue(100);
     layout->addWidget(slider);
 
     connect(slider, &QSlider::valueChanged, this, [label2](int value){
         std::println("Slider adjusted! Sending to back end");
-        label2->setText(QString("Opacity: %1").arg(value));
+        double opacity_value = value / 100.0;
+        label2->setText(QString("Opacity: %1").arg(opacity_value));
         auto messenger = &AtlasMessenger::Messenger::Instance();
-        auto args = "Slider," + std::to_string(value);
+        auto args = "Slider," + std::to_string(opacity_value);
         messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
 

@@ -213,7 +213,7 @@ namespace AtlasImageViewer
           OnPrevButtonPressed();
       }
       else if (command == "Slider") {
-          OnSliderUpdated(std::stoi(argument));
+          OnSliderUpdated(std::stod(argument));
       }
     }
   }
@@ -239,6 +239,8 @@ namespace AtlasImageViewer
     {
       std::println("ImageViewer::paintGL: m_fbo is valid");
       glEnable(GL_TEXTURE_2D);
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       glBindTexture(GL_TEXTURE_2D, m_fbo->texture());
 
       std::println("ImageViewer::paintGL: m_fbo textureId: {}", m_fbo->texture());
@@ -265,6 +267,8 @@ namespace AtlasImageViewer
 
       glBindTexture(GL_TEXTURE_2D, 0);
       glDisable(GL_TEXTURE_2D);
+      glColor4f(1.0, 1.0, 1.0,m_opacity);
+
     }
   }
 
@@ -292,9 +296,10 @@ namespace AtlasImageViewer
       this->update();
   }
 
-  auto ImageViewer::OnSliderUpdated(int value) -> void {
+  auto ImageViewer::OnSliderUpdated(double value) -> void {
       std::println("Slider updated! We are in the backend.");
-      sliderValue = value;
-      std::println("Here is the value: {}", value);
+      m_opacity = value;
+      std::println("Slider value: {}", value);
+      this->update();
   }
 }
