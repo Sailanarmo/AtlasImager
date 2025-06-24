@@ -132,6 +132,20 @@ namespace AtlasGUI
         auto args = "Slider," + std::to_string(opacity_value);
         messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
+    auto rotateButton = new QPushButton("Rotate Image");
+    layout->addWidget(rotateButton);
+    QObject::connect(rotateButton, &QPushButton::clicked, []() {
+        std::println("Rotate button clicked! Sending to back end");
+        auto messenger = &AtlasMessenger::Messenger::Instance();
+        messenger->SendMessage("RotateImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
+    });
+    auto resetButton = new QPushButton("Reset Rotation");
+    layout->addWidget(resetButton);
+    QObject::connect(resetButton, &QPushButton::clicked, []() {
+      std::println("Reset button clicked! Sending to back end");
+      auto messenger = &AtlasMessenger::Messenger::Instance();
+      messenger->SendMessage("ResetImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
+    });
     this->addWidget(m_renderingOptionsWidget);
   }
    

@@ -5,6 +5,7 @@
 #include <ranges>
 #include <algorithm>
 #include <print>
+#include <numbers>
 
 #include <QImage>
 
@@ -215,6 +216,12 @@ namespace AtlasImageViewer
       else if (command == "Slider") {
           OnSliderUpdated(std::stod(argument));
       }
+      else if (command == "RotateImage") {
+          RotateImage(std::move(argument));
+      }
+      else if (command == "ResetImage") {
+          ResetImage();
+      }
     }
   }
 
@@ -258,11 +265,29 @@ namespace AtlasImageViewer
         scaleX = imageAspectRatio / windowAspectRatio;
 
       // Render a textured quad
+      auto rotate = [=](float x, float y, float& outX, float& outY) {
+      float cosA = std::cos(m_rotationRadians);
+      float sinA = std::sin(m_rotationRadians);
+      outX = cosA * x - sinA * y;
+      outY = sinA * x + cosA * y;
+      };
+
+      float x0 = -scaleX, y0 = -scaleY;
+      float x1 =  scaleX, y1 = -scaleY;
+      float x2 =  scaleX, y2 =  scaleY;
+      float x3 = -scaleX, y3 =  scaleY;
+
+      float rx0, ry0, rx1, ry1, rx2, ry2, rx3, ry3;
+      rotate(x0, y0, rx0, ry0);
+      rotate(x1, y1, rx1, ry1);
+      rotate(x2, y2, rx2, ry2);
+      rotate(x3, y3, rx3, ry3);
+
       glBegin(GL_QUADS);
-        glTexCoord2f(0.0f, 0.0f); glVertex2f(-scaleX, -scaleY);
-        glTexCoord2f(1.0f, 0.0f); glVertex2f(scaleX, -scaleY);
-        glTexCoord2f(1.0f, 1.0f); glVertex2f(scaleX, scaleY);
-        glTexCoord2f(0.0f, 1.0f); glVertex2f(-scaleX, scaleY);
+      glTexCoord2f(0.0f, 0.0f); glVertex2f(rx0, ry0);
+      glTexCoord2f(1.0f, 0.0f); glVertex2f(rx1, ry1);
+      glTexCoord2f(1.0f, 1.0f); glVertex2f(rx2, ry2);
+      glTexCoord2f(0.0f, 1.0f); glVertex2f(rx3, ry3);
       glEnd();
 
       glBindTexture(GL_TEXTURE_2D, 0);
@@ -270,6 +295,13 @@ namespace AtlasImageViewer
       glColor4f(1.0, 1.0, 1.0,m_opacity);
 
     }
+  }
+
+  auto ImageViewer::RotateImage(std::string&& imagePath) -> void {
+      m_rotationRadians += 0.25; // Rotate a little more each time
+      if (m_rotationRadians > 2 * std::numbers::pi)
+        m_rotationRadians -= 2 * std::numbers::pi;
+      this->update(); // Repaint the widget
   }
 
   auto ImageViewer::CleanUp() -> void
@@ -300,6 +332,12 @@ namespace AtlasImageViewer
       std::println("Slider updated! We are in the backend.");
       m_opacity = value;
       std::println("Slider value: {}", value);
+      this->update();
+  }
+
+  auto ImageViewer::ResetImage() -> void {
+      std::println("Image reset! We are in the backend.");
+      m_rotationRadians = 0.0;
       this->update();
   }
 }

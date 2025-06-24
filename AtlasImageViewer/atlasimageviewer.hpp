@@ -40,6 +40,8 @@ namespace AtlasImageViewer
       auto OnPrevButtonPressed() -> void;
       auto OnSliderUpdated(double value) -> void;
       auto HandleMessage(const char* message) -> void;
+      auto RotateImage(std::string&& imagePath) -> void;
+      auto ResetImage() -> void;
 
     protected:
       auto initializeGL() -> void override;
@@ -55,6 +57,7 @@ namespace AtlasImageViewer
       std::unique_ptr<QOpenGLTexture> m_texture{nullptr};
       GLuint m_textureId;
       double m_opacity{1.0};
+      double m_rotationRadians{0.0};
 
       auto CleanUp() -> void;
       auto LoadImage(const std::string_view imagePath) -> void;
