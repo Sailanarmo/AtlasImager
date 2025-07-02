@@ -42,11 +42,20 @@ namespace AtlasImageViewer
       auto HandleMessage(const char* message) -> void;
       auto RotateImage(std::string&& imagePath) -> void;
       auto ResetImage() -> void;
+      auto MoveImageLeft() -> void;
+      auto MoveImageRight() -> void;
+      auto MoveImageUp() -> void;
+      auto MoveImageDown() -> void;
+      auto ScaleImageUp() -> void;
+      auto ScaleImageDown() -> void;
+      auto ScaleOverlayUp() -> void;
+      auto ScaleOverlayDown() -> void;
 
     protected:
       auto initializeGL() -> void override;
       auto resizeGL(int w, int h) -> void override;
       auto paintGL() -> void override;
+      auto keyPressEvent(QKeyEvent* event) -> void override;
     
     private:
       // Framebuffer objects for rendering, takes the 3 best matched images and 
@@ -56,8 +65,14 @@ namespace AtlasImageViewer
       std::unique_ptr<QOffscreenSurface> m_offscreensurface{nullptr};
       std::unique_ptr<QOpenGLTexture> m_texture{nullptr};
       GLuint m_textureId;
+      std::unique_ptr<QOpenGLTexture> overlay_texture{nullptr};
+      GLuint overlay_textureId;
       double m_opacity{1.0};
       double m_rotationRadians{0.0};
+      double xPos{0.0};
+      double yPos{0.0};
+      double scale_size{1.0};
+      double overlay_scale_size{1.0};
 
       auto CleanUp() -> void;
       auto LoadImage(const std::string_view imagePath) -> void;

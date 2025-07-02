@@ -6,8 +6,8 @@
 #include <algorithm>
 #include <print>
 #include <numbers>
-
 #include <QImage>
+#include <QKeyEvent>
 
 namespace AtlasImageViewer
 {
@@ -241,67 +241,80 @@ namespace AtlasImageViewer
   auto ImageViewer::paintGL() -> void
   {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_BLEND);
+    glEnable(GL_TEXTURE_2D);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    if (m_fbo && m_fbo->isValid()) 
-    {
-      std::println("ImageViewer::paintGL: m_fbo is valid");
-      glEnable(GL_TEXTURE_2D);
-      glEnable(GL_BLEND);
-      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      glBindTexture(GL_TEXTURE_2D, m_fbo->texture());
+    // Before drawing FBOs
+    auto scaleX = 1.0f;
+    auto scaleY = 1.0f;
+    if(m_fbo && m_fbo->isValid()) {
+        auto windowAspectRatio = static_cast<float>(this->width()) / static_cast<float>(this->height());
+        auto imageAspectRatio = static_cast<float>(m_fbo->size().width()) / static_cast<float>(m_fbo->size().height());
+        if(imageAspectRatio > windowAspectRatio)
+            scaleY = windowAspectRatio / imageAspectRatio;
+        else
+            scaleX = imageAspectRatio / windowAspectRatio;
+    }
 
-      std::println("ImageViewer::paintGL: m_fbo textureId: {}", m_fbo->texture());
-      std::println("ImageViewer::paintGL: m_fbo size (WxH): {}x{}", m_fbo->size().width(), m_fbo->size().height());
-
-      auto windowAspectRatio = static_cast<float>(this->width()) / static_cast<float>(this->height());
-      auto imageAspectRatio = static_cast<float>(m_fbo->size().width()) / static_cast<float>(m_fbo->size().height());
-
-      auto scaleX = 1.0f;
-      auto scaleY = 1.0f;
-
-      if(imageAspectRatio > windowAspectRatio)
-        scaleY = windowAspectRatio / imageAspectRatio;
-      else
-        scaleX = imageAspectRatio / windowAspectRatio;
-
-      // Render a textured quad
-      auto rotate = [=](float x, float y, float& outX, float& outY) {
+    // Render a textured quad
+    auto rotate = [=](float x, float y, float& outX, float& outY) {
       float cosA = std::cos(m_rotationRadians);
       float sinA = std::sin(m_rotationRadians);
       outX = cosA * x - sinA * y;
       outY = sinA * x + cosA * y;
-      };
+    };
 
-      float x0 = -scaleX, y0 = -scaleY;
-      float x1 =  scaleX, y1 = -scaleY;
-      float x2 =  scaleX, y2 =  scaleY;
-      float x3 = -scaleX, y3 =  scaleY;
+    float x0 = -scaleX, y0 = -scaleY;
+    float x1 =  scaleX, y1 = -scaleY;
+    float x2 =  scaleX, y2 =  scaleY;
+    float x3 = -scaleX, y3 =  scaleY;
 
-      float rx0, ry0, rx1, ry1, rx2, ry2, rx3, ry3;
-      rotate(x0, y0, rx0, ry0);
-      rotate(x1, y1, rx1, ry1);
-      rotate(x2, y2, rx2, ry2);
-      rotate(x3, y3, rx3, ry3);
+    float rx0, ry0, rx1, ry1, rx2, ry2, rx3, ry3;
+    rotate(x0, y0, rx0, ry0);
+    rotate(x1, y1, rx1, ry1);
+    rotate(x2, y2, rx2, ry2);
+    rotate(x3, y3, rx3, ry3);
 
+
+    // Draw Base FBO
+    if(m_fbos[0].first && m_fbos[0].first->isValid()) {
+        glBindTexture(GL_TEXTURE_2D, m_fbos[0].first->texture());
+        glColor4f(1.0, 1.0, 1.0,1.0);
+        // glScalef(scale_size, scale_size, scale_size);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 0.0f); glVertex2f(-scaleX, -scaleY);
+        glTexCoord2f(1.0f, 0.0f); glVertex2f(scaleX, -scaleY);
+        glTexCoord2f(1.0f, 1.0f); glVertex2f(scaleX, scaleY);
+        glTexCoord2f(0.0f, 1.0f); glVertex2f(-scaleX, scaleY);
+        glEnd();
+    }
+
+    // Draw Overlay fbo
+    if (m_fbo && m_fbo->isValid())
+    {
+      std::println("ImageViewer::paintGL: m_fbo is valid");
+      glBindTexture(GL_TEXTURE_2D, m_fbo->texture());
+      // glScalef(overlay_scale_size, overlay_scale_size, overlay_scale_size);
+      std::println("ImageViewer::paintGL: m_fbo textureId: {}", m_fbo->texture());
+      std::println("ImageViewer::paintGL: m_fbo size (WxH): {}x{}", m_fbo->size().width(), m_fbo->size().height());
+      glColor4f(1.0, 1.0, 1.0, m_opacity);
       glBegin(GL_QUADS);
-      glTexCoord2f(0.0f, 0.0f); glVertex2f(rx0, ry0);
-      glTexCoord2f(1.0f, 0.0f); glVertex2f(rx1, ry1);
-      glTexCoord2f(1.0f, 1.0f); glVertex2f(rx2, ry2);
-      glTexCoord2f(0.0f, 1.0f); glVertex2f(rx3, ry3);
+      glTexCoord2f(0.0f + xPos, 0.0f + yPos); glVertex2f(rx0, ry0);
+      glTexCoord2f(1.0f + xPos, 0.0f + yPos); glVertex2f(rx1, ry1);
+      glTexCoord2f(1.0f + xPos, 1.0f + yPos); glVertex2f(rx2, ry2);
+      glTexCoord2f(0.0f + xPos, 1.0f + yPos); glVertex2f(rx3, ry3);
       glEnd();
-
-      glBindTexture(GL_TEXTURE_2D, 0);
+      // glBindTexture(GL_TEXTURE_2D, 0);
       glDisable(GL_TEXTURE_2D);
-      glColor4f(1.0, 1.0, 1.0,m_opacity);
-
     }
   }
 
   auto ImageViewer::RotateImage(std::string&& imagePath) -> void {
-      m_rotationRadians += 0.25; // Rotate a little more each time
+      m_rotationRadians += 0.25;
       if (m_rotationRadians > 2 * std::numbers::pi)
         m_rotationRadians -= 2 * std::numbers::pi;
-      this->update(); // Repaint the widget
+      this->update();
   }
 
   auto ImageViewer::CleanUp() -> void
@@ -316,14 +329,14 @@ namespace AtlasImageViewer
 
   auto ImageViewer::OnNextButtonPressed() -> void {
       std::println("Next Button was Pressed! We are in the backend.");
-      std::swap(m_fbo, m_fbos[0].first);
+      // std::swap(m_fbos[0], m_fbos[1]);
       std::ranges::rotate(m_fbos, m_fbos.begin() + 1);
       this->update();
   }
 
   auto ImageViewer::OnPrevButtonPressed() -> void {
       std::println("Prev Button was Pressed! We are in the backend.");
-      std::swap(m_fbo, m_fbos[0].first);
+      // std::swap(m_fbos[0], m_fbos[2]);
       std::ranges::rotate(m_fbos, m_fbos.end() - 1);
       this->update();
   }
@@ -340,4 +353,93 @@ namespace AtlasImageViewer
       m_rotationRadians = 0.0;
       this->update();
   }
+
+  auto ImageViewer::MoveImageLeft() -> void {
+    std::println("Image moved to the left! We are in the backend.");
+    xPos += 0.01f;
+    this->update();
+  }
+
+  auto ImageViewer::MoveImageRight() -> void {
+    std::println("Image moved to the right! We are in the backend.");
+    xPos -= 0.01f;
+    this->update();
+  }
+
+  auto ImageViewer::MoveImageUp() -> void {
+    std::println("Image moved up! We are in the backend.");
+    yPos -= 0.01f;
+    this->update();
+  }
+
+  auto ImageViewer::MoveImageDown() -> void {
+    std::println("Image moved down! We are in the backend.");
+    yPos += 0.01f;
+    this->update();
+  }
+
+  auto ImageViewer::ScaleImageUp() -> void {
+    std::println("Image scaled up! We are in the backend.");
+    scale_size += 0.2f;
+    this->update();
+  }
+
+  auto ImageViewer::ScaleImageDown() -> void {
+    std::println("Image scaled down! We are in the backend.");
+    scale_size -= 0.2f;
+    this->update();
+  }
+
+  auto ImageViewer::ScaleOverlayUp() -> void {
+    std::println("Overlay scaled up! We are in the backend.");
+    overlay_scale_size += 0.2f;
+    this->update();
+  }
+
+  auto ImageViewer::ScaleOverlayDown() -> void {
+    std::println("Overlay scaled down! We are in the backend.");
+    overlay_scale_size -= 0.2f;
+    this->update();
+  }
+
+  auto ImageViewer::keyPressEvent(QKeyEvent* event) -> void {
+      switch (event->key()) {
+        case Qt::Key_Left:
+          qDebug() << "Left arrow pressed";
+          MoveImageLeft();
+          break;
+        case Qt::Key_Right:
+          qDebug() << "Right arrow pressed";
+          MoveImageRight();
+          break;
+        case Qt::Key_Up:
+          qDebug() << "Up arrow pressed";
+          MoveImageUp();
+          break;
+        case Qt::Key_Down:
+          qDebug() << "Down arrow pressed";
+          MoveImageDown();
+          break;
+        case Qt::Key_Q:
+          qDebug() << "Q Button pressed";
+          ScaleImageUp();
+          break;
+        case Qt::Key_A:
+          qDebug() << "A Button pressed";
+          ScaleImageDown();
+          break;
+        case Qt::Key_W:
+          qDebug() << "W Button pressed";
+          ScaleOverlayUp();
+          break;
+        case Qt::Key_S:
+          qDebug() << "S Button pressed";
+          ScaleOverlayDown();
+          break;
+        default:
+          QOpenGLWindow::keyPressEvent(event);
+      }
+  }
+
+
 }

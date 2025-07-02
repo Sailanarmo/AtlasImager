@@ -20,7 +20,6 @@
   <component name="ChangeListManager">
     <list default="true" id="7a8acc7c-710e-4248-9bac-b268548ff795" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.hpp" afterDir="false" />
     </list>
@@ -98,7 +97,10 @@
       <workItem from="1750166702502" duration="22342000" />
       <workItem from="1750340639151" duration="1073000" />
       <workItem from="1750345238085" duration="3877000" />
-      <workItem from="1750694063442" duration="18231000" />
+      <workItem from="1750694063442" duration="23140000" />
+      <workItem from="1751038472208" duration="9028000" />
+      <workItem from="1751296403602" duration="28122000" />
+      <workItem from="1751474161335" duration="4485000" />
     </task>
     <servers />
   </component>
@@ -109,5 +111,16 @@
     <isAutomaticCheckingOnLaunch value="false" />
     <isAutomaticFoundErrors value="true" />
     <isAutomaticReloadCMake value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.cpp</url>
+          <line>330</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
