@@ -30,6 +30,7 @@ namespace AtlasGUI
     BuildImagePathWidget();
     BuildRenderingOptionsWidget();
     BuildImageNavigationWidget();
+    BuildSaveImageWidget();
   }
     
   auto AtlasControlWidgetLayout::BuildRatModelWidget() -> void
@@ -115,7 +116,7 @@ namespace AtlasGUI
     // TODO: Flesh out the rendering options widget
     m_renderingOptionsWidget = new QWidget{};
     auto layout = new QVBoxLayout{m_renderingOptionsWidget};
-    auto label = new QLabel("Rendering Options\n\n");
+    auto label = new QLabel("Rendering Options\n");
     layout->addWidget(label);
     // Create slider
     auto label2 = new QLabel("Opacity: 1.0");
@@ -179,6 +180,22 @@ namespace AtlasGUI
        messenger->SendMessage(argsPrev.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
 
+  }
+
+
+  auto AtlasControlWidgetLayout::BuildSaveImageWidget() -> void {
+      m_saveImageWidget = new QWidget{};
+      auto layout = new QVBoxLayout{m_saveImageWidget};
+      auto label = new QLabel{"Save Image"};
+      auto saveButton = new QPushButton{"Save Image"};
+      layout->addWidget(label);
+      layout->addWidget(saveButton);
+      QObject::connect(saveButton, &QPushButton::clicked, []() {
+          std::println("Save button clicked! Sending to back end");
+          auto messenger = &AtlasMessenger::Messenger::Instance();
+          messenger->SendMessage("SaveImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
+      });
+      this->addWidget(m_saveImageWidget);
   }
 
   auto AtlasControlWidgetLayout::LoadModel() -> void

@@ -8,12 +8,14 @@
 #include <numbers>
 #include <QImage>
 #include <QKeyEvent>
+#include <QFileDialog>
 
 namespace AtlasImageViewer
 {
   ImageViewer::ImageViewer() : m_textureId{0}
   {
-    std::ranges::fill(m_fbos, std::pair{nullptr, 0});
+    // std::ranges::fill(m_fbos, std::pair{nullptr, 0});
+
   }
 
   ImageViewer::~ImageViewer()
@@ -117,26 +119,28 @@ namespace AtlasImageViewer
 
   auto ImageViewer::AddFBOToArray(std::unique_ptr<QOpenGLFramebufferObject>&& fbo, const double weight) -> void
   {
-    if(m_fbos[0].first == nullptr)
-    {
-      m_fbos[0].first = std::move(fbo);
-      m_fbos[0].second = weight;
-    }
-    else
-    {
-      auto minWeight = std::ranges::min_element(m_fbos, [](const auto& lhs, const auto& rhs)
-      {
-        return lhs.second < rhs.second;
-      });
-
-      if (weight > minWeight->second)
-      {
-        auto minWeightIndex = std::distance(m_fbos.begin(), minWeight);
-        m_fbos[minWeightIndex].second = weight;
-        m_fbos[minWeightIndex].first = std::move(fbo);
-      }
-    }
-    std::println("Successfully added FBO to array");
+      m_fbos.emplace_back(std::move(fbo), weight);
+      std::println("Successfully added FBO to array. Total now: {}", m_fbos.size());
+//    if(m_fbos[0].first == nullptr)
+//    {
+//      m_fbos[0].first = std::move(fbo);
+//      m_fbos[0].second = weight;
+//    }
+//    else
+//    {
+//      auto minWeight = std::ranges::min_element(m_fbos, [](const auto& lhs, const auto& rhs)
+//      {
+//        return lhs.second < rhs.second;
+//      });
+//
+//      if (weight > minWeight->second)
+//      {
+//        auto minWeightIndex = std::distance(m_fbos.begin(), minWeight);
+//        m_fbos[minWeightIndex].second = weight;
+//        m_fbos[minWeightIndex].first = std::move(fbo);
+//      }
+//    }
+//    std::println("Successfully added FBO to array");
   }
 
   // should this be a unique_ptr of an OpenCV Mat passed in by rvalue?
@@ -222,6 +226,9 @@ namespace AtlasImageViewer
       else if (command == "ResetImage") {
           ResetImage();
       }
+      else if (command == "SaveImage") {
+          SaveImage();
+      }
     }
   }
 
@@ -278,35 +285,39 @@ namespace AtlasImageViewer
 
 
     // Draw Base FBO
-    if(m_fbos[0].first && m_fbos[0].first->isValid()) {
-        glBindTexture(GL_TEXTURE_2D, m_fbos[0].first->texture());
-        glColor4f(1.0, 1.0, 1.0,1.0);
-        // glScalef(scale_size, scale_size, scale_size);
-        glBegin(GL_QUADS);
-        glTexCoord2f(0.0f, 0.0f); glVertex2f(-scaleX, -scaleY);
-        glTexCoord2f(1.0f, 0.0f); glVertex2f(scaleX, -scaleY);
-        glTexCoord2f(1.0f, 1.0f); glVertex2f(scaleX, scaleY);
-        glTexCoord2f(0.0f, 1.0f); glVertex2f(-scaleX, scaleY);
-        glEnd();
+    if(!m_fbos.empty() && m_fbos[0].first && m_fbos[0].first->isValid()) {
+      glPushMatrix();
+      glBindTexture(GL_TEXTURE_2D, m_fbos[0].first->texture());
+      glColor4f(1.0, 1.0, 1.0,1.0);
+      glScalef(scale_size, scale_size, 1.0f);
+      glBegin(GL_QUADS);
+      glTexCoord2f(0.0f + xPos, 0.0f + yPos); glVertex2f(-scaleX, -scaleY);
+      glTexCoord2f(1.0f + xPos, 0.0f + yPos); glVertex2f(scaleX, -scaleY);
+      glTexCoord2f(1.0f + xPos, 1.0f + yPos); glVertex2f(scaleX, scaleY);
+      glTexCoord2f(0.0f + xPos, 1.0f + yPos); glVertex2f(-scaleX, scaleY);
+      glEnd();
+      glPopMatrix();
     }
 
     // Draw Overlay fbo
     if (m_fbo && m_fbo->isValid())
     {
+      glPushMatrix();
       std::println("ImageViewer::paintGL: m_fbo is valid");
       glBindTexture(GL_TEXTURE_2D, m_fbo->texture());
-      // glScalef(overlay_scale_size, overlay_scale_size, overlay_scale_size);
+      glScalef(overlay_scale_size, overlay_scale_size, 1.0f);
       std::println("ImageViewer::paintGL: m_fbo textureId: {}", m_fbo->texture());
       std::println("ImageViewer::paintGL: m_fbo size (WxH): {}x{}", m_fbo->size().width(), m_fbo->size().height());
       glColor4f(1.0, 1.0, 1.0, m_opacity);
       glBegin(GL_QUADS);
-      glTexCoord2f(0.0f + xPos, 0.0f + yPos); glVertex2f(rx0, ry0);
-      glTexCoord2f(1.0f + xPos, 0.0f + yPos); glVertex2f(rx1, ry1);
-      glTexCoord2f(1.0f + xPos, 1.0f + yPos); glVertex2f(rx2, ry2);
-      glTexCoord2f(0.0f + xPos, 1.0f + yPos); glVertex2f(rx3, ry3);
+      glTexCoord2f(0.0f + overlay_xPos, 0.0f + overlay_yPos); glVertex2f(rx0, ry0);
+      glTexCoord2f(1.0f + overlay_xPos, 0.0f + overlay_yPos); glVertex2f(rx1, ry1);
+      glTexCoord2f(1.0f + overlay_xPos, 1.0f + overlay_yPos); glVertex2f(rx2, ry2);
+      glTexCoord2f(0.0f + overlay_xPos, 1.0f + overlay_yPos); glVertex2f(rx3, ry3);
       glEnd();
-      // glBindTexture(GL_TEXTURE_2D, 0);
+      glBindTexture(GL_TEXTURE_2D, 0);
       glDisable(GL_TEXTURE_2D);
+      glPopMatrix();
     }
   }
 
@@ -354,15 +365,50 @@ namespace AtlasImageViewer
       this->update();
   }
 
-  auto ImageViewer::MoveImageLeft() -> void {
+  auto ImageViewer::SaveImage() -> void {
+      std::println("Image saved! We are in the backend.");
+
+      // Get what is displayed or something
+      QImage image = this->grabFramebuffer();
+
+      // Pull up the save dialog and let them do their thing
+      QString filePath = QFileDialog::getSaveFileName(
+              nullptr,
+              "Save Image",
+              "",                           // Default directory or file name
+              "PNG Image (*.png);;JPEG (*.jpg);;BMP Image (*.bmp);;TIF Image (*.tif)"
+      );
+
+      image.save(filePath);
+  }
+
+  auto ImageViewer::MoveOverlayLeft() -> void {
     std::println("Image moved to the left! We are in the backend.");
-    xPos += 0.01f;
+    overlay_xPos += 0.01f;
     this->update();
   }
 
-  auto ImageViewer::MoveImageRight() -> void {
+  auto ImageViewer::MoveOverlayRight() -> void {
     std::println("Image moved to the right! We are in the backend.");
-    xPos -= 0.01f;
+    overlay_xPos -= 0.01f;
+    this->update();
+  }
+
+  auto ImageViewer::MoveOverlayUp() -> void {
+    std::println("Image moved up! We are in the backend.");
+    overlay_yPos -= 0.01f;
+    this->update();
+  }
+
+  auto ImageViewer::MoveOverlayDown() -> void {
+    std::println("Image moved down! We are in the backend.");
+    overlay_yPos += 0.01f;
+    this->update();
+  }
+
+  auto ImageViewer::MoveImageDown() -> void {
+    std::println("Image moved down! We are in the backend.");
+    yPos += 0.01f;
     this->update();
   }
 
@@ -372,11 +418,18 @@ namespace AtlasImageViewer
     this->update();
   }
 
-  auto ImageViewer::MoveImageDown() -> void {
-    std::println("Image moved down! We are in the backend.");
-    yPos += 0.01f;
+  auto ImageViewer::MoveImageLeft() -> void {
+    std::println("Image moved left! We are in the backend.");
+    xPos += 0.01f;
     this->update();
   }
+
+  auto ImageViewer::MoveImageRight() -> void {
+    std::println("Image moved right! We are in the backend.");
+    xPos -= 0.01f;
+    this->update();
+  }
+
 
   auto ImageViewer::ScaleImageUp() -> void {
     std::println("Image scaled up! We are in the backend.");
@@ -406,35 +459,51 @@ namespace AtlasImageViewer
       switch (event->key()) {
         case Qt::Key_Left:
           qDebug() << "Left arrow pressed";
-          MoveImageLeft();
+          MoveOverlayLeft();
           break;
         case Qt::Key_Right:
           qDebug() << "Right arrow pressed";
-          MoveImageRight();
+          MoveOverlayRight();
           break;
         case Qt::Key_Up:
           qDebug() << "Up arrow pressed";
-          MoveImageUp();
+          MoveOverlayUp();
           break;
         case Qt::Key_Down:
           qDebug() << "Down arrow pressed";
-          MoveImageDown();
+          MoveOverlayDown();
           break;
-        case Qt::Key_Q:
-          qDebug() << "Q Button pressed";
+        case Qt::Key_R:
+          qDebug() << "R Button pressed";
           ScaleImageUp();
           break;
-        case Qt::Key_A:
-          qDebug() << "A Button pressed";
+        case Qt::Key_F:
+          qDebug() << "F Button pressed";
           ScaleImageDown();
+          break;
+        case Qt::Key_T:
+          qDebug() << "T Button pressed";
+          ScaleOverlayUp();
+          break;
+        case Qt::Key_G:
+          qDebug() << "G Button pressed";
+          ScaleOverlayDown();
           break;
         case Qt::Key_W:
           qDebug() << "W Button pressed";
-          ScaleOverlayUp();
+          MoveImageUp();
+          break;
+        case Qt::Key_A:
+          qDebug() << "A Button pressed";
+          MoveImageLeft();
           break;
         case Qt::Key_S:
           qDebug() << "S Button pressed";
-          ScaleOverlayDown();
+          MoveImageDown();
+          break;
+        case Qt::Key_D:
+          qDebug() << "D Button pressed";
+          MoveImageRight();
           break;
         default:
           QOpenGLWindow::keyPressEvent(event);

@@ -26,6 +26,7 @@ namespace AtlasGUI
     QWidget* m_imagePathWidget{nullptr};
     QWidget* m_renderingOptionsWidget{nullptr};
     QWidget* m_imageNavigationWidget{nullptr};
+    QWidget* m_saveImageWidget{nullptr};
     QPushButton* nextButton = nullptr;
     QPushButton* prevButton = nullptr;
 
@@ -36,6 +37,7 @@ namespace AtlasGUI
     auto BuildImagePathWidget() -> void;
     auto BuildRenderingOptionsWidget() -> void;
     auto BuildImageNavigationWidget() -> void;
+    auto BuildSaveImageWidget() -> void;
 
   };
 }

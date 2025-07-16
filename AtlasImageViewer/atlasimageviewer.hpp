@@ -46,10 +46,15 @@ namespace AtlasImageViewer
       auto MoveImageRight() -> void;
       auto MoveImageUp() -> void;
       auto MoveImageDown() -> void;
+      auto MoveOverlayLeft() -> void;
+      auto MoveOverlayRight() -> void;
+      auto MoveOverlayUp() -> void;
+      auto MoveOverlayDown() -> void;
       auto ScaleImageUp() -> void;
       auto ScaleImageDown() -> void;
       auto ScaleOverlayUp() -> void;
       auto ScaleOverlayDown() -> void;
+      auto SaveImage() -> void;
 
     protected:
       auto initializeGL() -> void override;
@@ -60,7 +65,7 @@ namespace AtlasImageViewer
     private:
       // Framebuffer objects for rendering, takes the 3 best matched images and 
       // sorts them by weight
-      std::array<std::pair<std::unique_ptr<QOpenGLFramebufferObject>, int>, 3> m_fbos;
+      std::vector<std::pair<std::unique_ptr<QOpenGLFramebufferObject>, int>> m_fbos;
       std::unique_ptr<QOpenGLFramebufferObject> m_fbo{nullptr};
       std::unique_ptr<QOffscreenSurface> m_offscreensurface{nullptr};
       std::unique_ptr<QOpenGLTexture> m_texture{nullptr};
@@ -69,6 +74,8 @@ namespace AtlasImageViewer
       GLuint overlay_textureId;
       double m_opacity{1.0};
       double m_rotationRadians{0.0};
+      double overlay_xPos{0.0};
+      double overlay_yPos{0.0};
       double xPos{0.0};
       double yPos{0.0};
       double scale_size{1.0};
