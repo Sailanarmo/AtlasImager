@@ -66,6 +66,7 @@ Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\Qt6OpenGL.d
 Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\Qt6Widgets.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\Dataset\*"; DestDir: "{app}\Dataset"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\platforms\*"; DestDir: "{app}\platforms"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\plugins\*"; DestDir: "{app}\plugins"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

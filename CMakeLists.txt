@@ -54,6 +54,9 @@ if (MSVC)
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "${Qt6_DIR}/../../../plugins/platforms/qwindows.dll"
       "$<TARGET_FILE_DIR:AtlasImager>/platforms/qwindows.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${Qt6_DIR}/../../../plugins/imageformats/qtiff.dll"
+      "$<TARGET_FILE_DIR:AtlasImager>/plugins/imageformats/qtiff.dll"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
       ${CMAKE_CURRENT_LIST_DIR}/AtlasModel/Dataset
       $<TARGET_FILE_DIR:AtlasImager>/Dataset
