@@ -2,17 +2,19 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Atlas Imager"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.1"
+#define MyAppPublisher "Raul Ramirez"
 #define MyAppURL "https://github.com/Sailanarmo/AtlasImager"
 #define MyAppExeName "AtlasImager.exe"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{7A920B0B-F87E-45C4-A8A8-26DC8B70E4F6}
+AppId={{EE614976-3A83-49F7-8181-51F42A401666}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
+AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
@@ -27,9 +29,11 @@ ArchitecturesAllowed=x64compatible
 ; the 64-bit view of the registry.
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
+LicenseFile=C:\Users\Admin\Documents\Projects\AtlasImager\LICENSE
 ; Uncomment the following line to run in non administrative install mode (install for current user only).
 ;PrivilegesRequired=lowest
-OutputBaseFilename=AtlasImagerInstaller
+OutputBaseFilename=AtlasImager-Installer
+SetupIconFile=C:\Users\Admin\Documents\Projects\AtlasImager\resources\AtlasImager-Logo.ico
 SolidCompression=yes
 WizardStyle=modern
 
@@ -60,9 +64,8 @@ Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\Qt6Core.dll
 Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\Qt6Gui.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\Qt6OpenGL.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\Qt6Widgets.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\Dataset\*"; DestDir: "{app}\Dataset\"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\platforms\*"; DestDir: "{app}\platforms\"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\icon\*"; DestDir: "{app}\icon\"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\Dataset\*"; DestDir: "{app}\Dataset"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\Admin\Documents\Projects\AtlasImager\build\Release\platforms\*"; DestDir: "{app}\platforms"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
