@@ -4,7 +4,6 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
-// #include <opencv2/xfeatures2d.hpp>
 
 #include <thread>
 #include <ranges>
@@ -17,8 +16,8 @@ namespace AtlasModel
 {
   const std::unordered_map<AtlasCommon::AtlasDataSet, std::string> Model::m_dataSetPaths =
   {
-    {AtlasCommon::AtlasDataSet::LGN, "AtlasModel/Dataset/LGN"},
-    {AtlasCommon::AtlasDataSet::PAG, "AtlasModel/Dataset/PAG"}
+    {AtlasCommon::AtlasDataSet::LGN, "./Dataset/LGN"},
+    {AtlasCommon::AtlasDataSet::PAG, "./Dataset/PAG"}
   };
 
   Model::Model()
@@ -59,34 +58,44 @@ namespace AtlasModel
   }
 
   // Should this return by rvalue reference?
-  auto Model::GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>
-  {
-    auto bestFits = std::array<std::string,3>{};
-    auto img = AtlasImage::Image{imageName.data()};
-    auto imgDescriptors = GetQueryDescriptors(img);
-
-    auto candidateDescriptors = std::vector<AtlasImage::Image>{};
-
-    std::ranges::transform(m_images,std::back_inserter(candidateDescriptors),
-      [this](const AtlasImage::Image& image){ 
-        return GetQueryDescriptors(image); 
-      }
-    );
-
-    auto scores = candidateDescriptors 
-    | std::views::transform([this,imgDescriptors](const AtlasImage::Image& descriptor) { 
-        return this->CalculateMatchScore(imgDescriptors,descriptor); 
-      }) 
-    | std::ranges::to<std::vector<std::pair<std::string,double>>>();
-
-    std::ranges::sort(scores, [](const auto& a, const auto& b) { return a.second < b.second; });
-
-    bestFits[0] = std::string{scores[0].first + ":" + std::to_string(scores[0].second)};
-    bestFits[1] = std::string{scores[1].first + ":" + std::to_string(scores[1].second)};
-    bestFits[2] = std::string{scores[2].first + ":" + std::to_string(scores[2].second)};
-
+  auto Model::GetBestFits(const std::string_view imageName) -> std::vector<std::string> {
+    auto bestFits = std::vector<std::string>{};
+    double num = 0;
+    for(auto &image : m_images) {
+      auto name = image.GetImageName();
+      bestFits.push_back(std::string(name) + ":" + std::to_string(num));
+      num += 1;
+    }
     return bestFits;
   }
+//  auto Model::GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>
+//  {
+//    auto bestFits = std::array<std::string,3>{};
+//    auto img = AtlasImage::Image{imageName.data()};
+//    auto imgDescriptors = GetQueryDescriptors(img);
+//
+//    auto candidateDescriptors = std::vector<AtlasImage::Image>{};
+//
+//    std::ranges::transform(m_images,std::back_inserter(candidateDescriptors),
+//      [this](const AtlasImage::Image& image){
+//        return GetQueryDescriptors(image);
+//      }
+//    );
+//
+//    auto scores = candidateDescriptors
+//    | std::views::transform([this,imgDescriptors](const AtlasImage::Image& descriptor) {
+//        return this->CalculateMatchScore(imgDescriptors,descriptor);
+//      })
+//    | std::ranges::to<std::vector<std::pair<std::string,double>>>();
+//
+//    std::ranges::sort(scores, [](const auto& a, const auto& b) { return a.second < b.second; });
+//
+//    bestFits[0] = std::string{scores[0].first + ":" + std::to_string(scores[0].second)};
+//    bestFits[1] = std::string{scores[1].first + ":" + std::to_string(scores[1].second)};
+//    bestFits[2] = std::string{scores[2].first + ":" + std::to_string(scores[2].second)};
+//    std::println("{}", bestFits);
+//    return bestFits;
+//  }
 
   auto Model::LoadDataSet(const AtlasCommon::AtlasDataSet dataSet) -> void
   {
@@ -119,6 +128,7 @@ namespace AtlasModel
       {
         std::println("GetBestFits called");
         auto bestFits = GetBestFits(argument);
+        std::sort(bestFits.begin(), bestFits.end());
         std::ranges::for_each(bestFits, [](const auto& image)
         {
           auto msg = std::string{"AddImage," + image};

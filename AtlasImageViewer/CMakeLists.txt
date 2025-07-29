@@ -8,6 +8,11 @@ target_include_directories(
   ${Qt6OpenGL_INCLUDE_DIRS}
 )
 
-target_link_libraries(AtlasImageViewer Qt6::OpenGL)
+target_link_libraries(AtlasImageViewer PRIVATE Qt6::OpenGL Qt6::Widgets)
+
+if (MSVC)
+  target_compile_options(AtlasImageViewer PUBLIC "/Zc:__cplusplus")
+endif()
+
 
 add_library(Atlas::ImageViewer ALIAS AtlasImageViewer)

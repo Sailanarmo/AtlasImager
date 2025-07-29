@@ -25,7 +25,8 @@ namespace AtlasModel
     public:
       Model();
 
-      auto GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>;
+      // auto GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>;
+      auto GetBestFits(const std::string_view imageName) -> std::vector<std::string>;
       auto LoadDataSet(const AtlasCommon::AtlasDataSet dataSet) -> void;
 
       auto HandleMessage(const char* message) -> void;

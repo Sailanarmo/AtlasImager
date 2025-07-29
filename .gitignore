@@ -1,5 +1,8 @@
 /build/
 /.vscode/
+/.idea/
+/thirdparty/
+/Output/
 *.png
 *.jpg
 *.tif

@@ -2,6 +2,8 @@
 
 #include "AtlasCommon/atlasenums.hpp"
 #include "AtlasMessenger/atlasmessenger.hpp"
+#include "AtlasImageViewer/atlasimageviewer.hpp"
+#include "opacitySlider.hpp"
 
 #include <ranges>
 #include <algorithm>
@@ -11,6 +13,7 @@
 #include <QLineEdit>
 #include <QFileDialog>
 #include <QPushButton>
+#include <QCheckBox>
 
 #include <print>
 
@@ -27,6 +30,7 @@ namespace AtlasGUI
     BuildImagePathWidget();
     BuildRenderingOptionsWidget();
     BuildImageNavigationWidget();
+    BuildSaveImageWidget();
   }
     
   auto AtlasControlWidgetLayout::BuildRatModelWidget() -> void
@@ -92,11 +96,16 @@ namespace AtlasGUI
       messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
 
-    QObject::connect(findBestMatchButton, &QPushButton::clicked, [lineEdit, messenger](){
+    QObject::connect(findBestMatchButton, &QPushButton::clicked, [this, lineEdit, messenger](){
       auto imgToProcess = lineEdit->text().toStdString();
       auto args = std::string{"GetBestFits," + imgToProcess};
       std::println("Sending Model to get Best Fits!");
       messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasModel);
+
+      if (nextButton && prevButton) {
+          nextButton->setEnabled(true);
+          prevButton->setEnabled(true);
+      }
     });
     
     this->addWidget(m_imagePathWidget);
@@ -107,8 +116,37 @@ namespace AtlasGUI
     // TODO: Flesh out the rendering options widget
     m_renderingOptionsWidget = new QWidget{};
     auto layout = new QVBoxLayout{m_renderingOptionsWidget};
-    auto label = new QLabel{"Rendering Options"};
+    auto label = new QLabel("Rendering Options\n");
     layout->addWidget(label);
+    // Create slider
+    auto label2 = new QLabel("Opacity: 1.0");
+    layout->addWidget(label2);
+    OpacitySlider* slider = new OpacitySlider(Qt::Horizontal, 0, 100);
+    slider->setValue(100);
+    layout->addWidget(slider);
+
+    connect(slider, &QSlider::valueChanged, this, [label2](int value){
+        std::println("Slider adjusted! Sending to back end");
+        double opacity_value = value / 100.0;
+        label2->setText(QString("Opacity: %1").arg(opacity_value));
+        auto messenger = &AtlasMessenger::Messenger::Instance();
+        auto args = "Slider," + std::to_string(opacity_value);
+        messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
+    });
+    auto rotateButton = new QPushButton("Rotate Image");
+    layout->addWidget(rotateButton);
+    QObject::connect(rotateButton, &QPushButton::clicked, []() {
+        std::println("Rotate button clicked! Sending to back end");
+        auto messenger = &AtlasMessenger::Messenger::Instance();
+        messenger->SendMessage("RotateImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
+    });
+    auto resetButton = new QPushButton("Reset Rotation");
+    layout->addWidget(resetButton);
+    QObject::connect(resetButton, &QPushButton::clicked, []() {
+      std::println("Reset button clicked! Sending to back end");
+      auto messenger = &AtlasMessenger::Messenger::Instance();
+      messenger->SendMessage("ResetImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
+    });
     this->addWidget(m_renderingOptionsWidget);
   }
    
@@ -118,11 +156,13 @@ namespace AtlasGUI
     m_imageNavigationWidget = new QWidget{};
     auto layout = new QVBoxLayout{m_imageNavigationWidget};
     auto label = new QLabel{"Image Navigation"};
-    auto nextButton = new QPushButton{"Next Image"};
-    auto prevButton = new QPushButton{"Previous Image"};
+    nextButton = new QPushButton{"Next Image"};
+    prevButton = new QPushButton{"Previous Image"};
     layout->addWidget(label);
     layout->addWidget(nextButton);
     layout->addWidget(prevButton);
+    nextButton->setEnabled(false);
+    prevButton->setEnabled(false);
     this->addWidget(m_imageNavigationWidget);
 
     auto lineEdit = new QLineEdit{};
@@ -140,6 +180,22 @@ namespace AtlasGUI
        messenger->SendMessage(argsPrev.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
 
+  }
+
+
+  auto AtlasControlWidgetLayout::BuildSaveImageWidget() -> void {
+      m_saveImageWidget = new QWidget{};
+      auto layout = new QVBoxLayout{m_saveImageWidget};
+      auto label = new QLabel{"Save Image"};
+      auto saveButton = new QPushButton{"Save Image"};
+      layout->addWidget(label);
+      layout->addWidget(saveButton);
+      QObject::connect(saveButton, &QPushButton::clicked, []() {
+          std::println("Save button clicked! Sending to back end");
+          auto messenger = &AtlasMessenger::Messenger::Instance();
+          messenger->SendMessage("SaveImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
+      });
+      this->addWidget(m_saveImageWidget);
   }
 
   auto AtlasControlWidgetLayout::LoadModel() -> void
