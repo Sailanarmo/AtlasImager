@@ -31,6 +31,7 @@ target_link_libraries(
 
 if (MSVC)
   target_compile_options(AtlasImager PUBLIC "/Zc:__cplusplus")
+  set_target_properties(AtlasImager PROPERTIES WIN32_EXECUTABLE TRUE)
 
   add_custom_command(
     TARGET AtlasImager
@@ -50,9 +51,6 @@ if (MSVC)
     COMMAND ${CMAKE_COMMAND} -E copy_directory
       ${CMAKE_CURRENT_LIST_DIR}/AtlasModel/Dataset
       $<TARGET_FILE_DIR:AtlasImager>/Dataset
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-      ${CMAKE_CURRENT_LIST_DIR}/icon
-      $<TARGET_FILE_DIR:AtlasImager>/icon
     COMMAND_EXPAND_LISTS # Important for expanding the list of DLLs
     COMMENT "Copying runtime DLLs and Dataset to executable directory..."
   )
