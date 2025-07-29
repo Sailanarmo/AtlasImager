@@ -7,4 +7,8 @@ target_include_directories(
   ${Qt6OpenGL_INCLUDE_DIRS}
 )
 
+if(MSVC)
+  target_compile_options(AtlasMessenger PUBLIC "/Zc:__cplusplus")
+endif()
+
 add_library(Atlas::Messenger ALIAS AtlasMessenger)

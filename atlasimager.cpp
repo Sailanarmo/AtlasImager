@@ -3,6 +3,7 @@
 #include "AtlasModel/model.hpp"
 #include "AtlasMessenger/atlasmessenger.hpp"
 
+#include <QMainWindow>
 #include <QApplication>
 
 #include <thread>
@@ -35,10 +36,14 @@ auto main(int argc, char** argv) -> int
     shut_down = true;
   });
 
-  AtlasGUI::AtlasMainWindow mainWindow{};
   std::thread ModelApp(LaunchModelApp);
   ModelApp.detach();
+
+  auto mainWindow = QMainWindow{};
+  auto mainApp = new AtlasGUI::AtlasMainWindow{};
+  mainWindow.setCentralWidget(mainApp);
   mainWindow.resize(800, 600);
+  mainWindow.setWindowTitle("Atlas Imager");
   mainWindow.show();
 
   return app.exec();

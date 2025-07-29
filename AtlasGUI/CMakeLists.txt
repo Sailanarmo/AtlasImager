@@ -14,4 +14,8 @@ target_include_directories(
   ${Qt6Widgets_INCLUDE_DIRS} ${Qt6OpenGL_INCLUDE_DIRS}
 )
 
+if (MSVC)
+  target_compile_options(AtlasGUI PUBLIC "/Zc:__cplusplus")
+endif()
+
 add_library(Atlas::GUI ALIAS AtlasGUI)

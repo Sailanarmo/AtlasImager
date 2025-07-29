@@ -4,7 +4,6 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
-// #include <opencv2/xfeatures2d.hpp>
 
 #include <thread>
 #include <ranges>
@@ -17,8 +16,8 @@ namespace AtlasModel
 {
   const std::unordered_map<AtlasCommon::AtlasDataSet, std::string> Model::m_dataSetPaths =
   {
-    {AtlasCommon::AtlasDataSet::LGN, "AtlasModel/Dataset/LGN"},
-    {AtlasCommon::AtlasDataSet::PAG, "AtlasModel/Dataset/PAG"}
+    {AtlasCommon::AtlasDataSet::LGN, "./Dataset/LGN"},
+    {AtlasCommon::AtlasDataSet::PAG, "./Dataset/PAG"}
   };
 
   Model::Model()
