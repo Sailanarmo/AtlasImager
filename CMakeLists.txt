@@ -20,7 +20,13 @@ add_subdirectory(AtlasModel)
 add_subdirectory(AtlasMessenger)
 add_subdirectory(AtlasImageViewer)
 
-qt_add_executable(AtlasImager atlasimager.cpp)
+set(WindowsIconResource "${CMAKE_CURRENT_LIST_DIR}/resources/atlasimager.rc")
+
+if(MSVC)
+  qt_add_executable(AtlasImager atlasimager.cpp ${WindowsIconResource})
+else()
+  qt_add_executable(AtlasImager atlasimager.cpp)
+endif()
 
 target_include_directories(AtlasImager PRIVATE ${ATLASIMAGER_ROOT_DIR})
 target_link_libraries(
