@@ -20,13 +20,9 @@
   <component name="ChangeListManager">
     <list default="true" id="7a8acc7c-710e-4248-9bac-b268548ff795" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AtlasImageViewer/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasImageViewer/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/AtlasModel/model.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasModel/model.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AtlasModel/model.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/AtlasModel/model.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -108,7 +104,9 @@
       <workItem from="1751474161335" duration="13526000" />
       <workItem from="1751904054490" duration="19829000" />
       <workItem from="1752252357429" duration="8087000" />
-      <workItem from="1752511214990" duration="4574000" />
+      <workItem from="1752511214990" duration="7281000" />
+      <workItem from="1754515525904" duration="775000" />
+      <workItem from="1754927631883" duration="14511000" />
     </task>
     <servers />
   </component>
@@ -125,7 +123,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.cpp</url>
-          <line>341</line>
+          <line>411</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
@@ -134,9 +132,14 @@
           <option name="timeStamp" value="2" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/AtlasGUI/atlascontrolwidget_layout.cpp</url>
+          <line>99</line>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/AtlasImageViewer/atlasimageviewer.cpp</url>
-          <line>222</line>
-          <option name="timeStamp" value="3" />
+          <line>262</line>
+          <option name="timeStamp" value="5" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -35,6 +35,8 @@ namespace AtlasImageViewer
       ImageViewer();
       ~ImageViewer();
 
+      auto CreateFBO(std::string curImagePath) -> void;
+      auto AddImageVector(std::string imagePath) -> void;
       auto AddImage(std::string&& imagePath, const double weight) -> void;
       auto OnNextButtonPressed() -> void;
       auto OnPrevButtonPressed() -> void;
@@ -80,6 +82,9 @@ namespace AtlasImageViewer
       double yPos{0.0};
       double scale_size{1.0};
       double overlay_scale_size{1.0};
+      std::vector<std::string> images;
+      int cur_image;
+      std::unique_ptr<QOpenGLFramebufferObject> cur_fbo{nullptr};
 
       auto CleanUp() -> void;
       auto LoadImage(const std::string_view imagePath) -> void;
@@ -89,6 +94,7 @@ namespace AtlasImageViewer
       auto CreateFrameBuffer(const QSize size) -> std::unique_ptr<QOpenGLFramebufferObject>;
       auto DrawToFBO(QOpenGLFramebufferObject* fbo, QOpenGLFunctions* gl_funcs, const GLuint textureId) -> void;
       auto AddFBOToArray(std::unique_ptr<QOpenGLFramebufferObject>&& fbo, const double weight) -> void;
+      auto CreateFBO() -> void;
       
   };
 }

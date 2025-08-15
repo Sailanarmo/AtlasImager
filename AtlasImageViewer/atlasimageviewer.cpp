@@ -143,6 +143,24 @@ namespace AtlasImageViewer
 //    std::println("Successfully added FBO to array");
   }
 
+  auto ImageViewer::AddImageVector(std::string argument) -> void {
+      std::println("ImageViewer::HandleMessage:: AddImageVector");
+      std::println("ImageViewer::HandleMessage: argument: {}", argument);
+      auto colonPos = argument.find(':');
+      if(colonPos != std::string::npos) {
+          auto imagePath = argument.substr(0, colonPos);
+          auto weight = std::stod(argument.substr(colonPos + 1));
+
+          std::println("ImageViewer::HandleMessage: adding the image {} with weight: {}", imagePath, weight);
+          // AddImage(std::move(imagePath),weight);
+          images.push_back(imagePath);
+      }
+      std::sort(images.begin(), images.end());
+
+
+
+  }
+
   // should this be a unique_ptr of an OpenCV Mat passed in by rvalue?
   // or should this be an array of images already sorted? 
   auto ImageViewer::AddImage(std::string&& imagePath, const double weight) -> void
@@ -173,6 +191,37 @@ namespace AtlasImageViewer
     std::println("Adding FBO to Array.");
     AddFBOToArray(std::move(fbo), weight);
 
+  }
+
+  auto ImageViewer::CreateFBO() -> void {
+      if (images.empty()) {
+          return;
+      }
+      std::string curImagePath = images[cur_image];
+      std::println("Creating QImage");
+      auto image = CreateImage(curImagePath);
+      std::println("Creating a Context");
+      auto tempContext = std::move(CreateNewContext());
+
+      tempContext->makeCurrent(m_offscreensurface.get());
+
+      auto gl_funcs = tempContext->functions();
+      std::println("Creating a new texture");
+      auto textureId = CreateTexture(image, gl_funcs);
+
+      auto fbo = CreateFrameBuffer(image.size());
+
+      if(!fbo->isValid())
+      {
+          fbo.reset();
+          gl_funcs->glDeleteTextures(1, &textureId);
+      }
+
+      DrawToFBO(fbo.get(), gl_funcs, textureId);
+
+      std::println("Adding FBO to Array.");
+      cur_fbo = std::move(fbo);
+      // AddFBOToArray(std::move(fbo), weight);
   }
 
   auto ImageViewer::HandleMessage(const char* message) -> void
@@ -209,6 +258,14 @@ namespace AtlasImageViewer
           AddImage(std::move(imagePath),weight);
           //TODO: Blend and render the images.
         }
+      }
+      else if (command == "AddImageVector") {
+          AddImageVector(argument);
+      }
+      else if (command == "SetImage") {
+          cur_image = 0;
+          CreateFBO();
+          this->update();
       }
       else if (command == "NextButton") {
           // std::println("Next Button was Pressed! We are in the backend.");
@@ -285,19 +342,32 @@ namespace AtlasImageViewer
 
 
     // Draw Base FBO
-    if(!m_fbos.empty() && m_fbos[0].first && m_fbos[0].first->isValid()) {
-      glPushMatrix();
-      glBindTexture(GL_TEXTURE_2D, m_fbos[0].first->texture());
-      glColor4f(1.0, 1.0, 1.0,1.0);
-      glScalef(scale_size, scale_size, 1.0f);
-      glBegin(GL_QUADS);
-      glTexCoord2f(0.0f + xPos, 0.0f + yPos); glVertex2f(-scaleX, -scaleY);
-      glTexCoord2f(1.0f + xPos, 0.0f + yPos); glVertex2f(scaleX, -scaleY);
-      glTexCoord2f(1.0f + xPos, 1.0f + yPos); glVertex2f(scaleX, scaleY);
-      glTexCoord2f(0.0f + xPos, 1.0f + yPos); glVertex2f(-scaleX, scaleY);
-      glEnd();
-      glPopMatrix();
+    if (cur_fbo && cur_fbo->isValid()) {
+        glPushMatrix();
+        glBindTexture(GL_TEXTURE_2D, cur_fbo->texture());
+        glColor4f(1.0, 1.0, 1.0,1.0);
+        glScalef(scale_size, scale_size, 1.0f);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f + xPos, 0.0f + yPos); glVertex2f(-scaleX, -scaleY);
+        glTexCoord2f(1.0f + xPos, 0.0f + yPos); glVertex2f(scaleX, -scaleY);
+        glTexCoord2f(1.0f + xPos, 1.0f + yPos); glVertex2f(scaleX, scaleY);
+        glTexCoord2f(0.0f + xPos, 1.0f + yPos); glVertex2f(-scaleX, scaleY);
+        glEnd();
+        glPopMatrix();
     }
+//    if(!m_fbos.empty() && m_fbos[0].first && m_fbos[0].first->isValid()) {
+//      glPushMatrix();
+//      glBindTexture(GL_TEXTURE_2D, m_fbos[0].first->texture());
+//      glColor4f(1.0, 1.0, 1.0,1.0);
+//      glScalef(scale_size, scale_size, 1.0f);
+//      glBegin(GL_QUADS);
+//      glTexCoord2f(0.0f + xPos, 0.0f + yPos); glVertex2f(-scaleX, -scaleY);
+//      glTexCoord2f(1.0f + xPos, 0.0f + yPos); glVertex2f(scaleX, -scaleY);
+//      glTexCoord2f(1.0f + xPos, 1.0f + yPos); glVertex2f(scaleX, scaleY);
+//      glTexCoord2f(0.0f + xPos, 1.0f + yPos); glVertex2f(-scaleX, scaleY);
+//      glEnd();
+//      glPopMatrix();
+//    }
 
     // Draw Overlay fbo
     if (m_fbo && m_fbo->isValid())
@@ -341,14 +411,24 @@ namespace AtlasImageViewer
   auto ImageViewer::OnNextButtonPressed() -> void {
       std::println("Next Button was Pressed! We are in the backend.");
       // std::swap(m_fbos[0], m_fbos[1]);
-      std::ranges::rotate(m_fbos, m_fbos.begin() + 1);
+      // std::ranges::rotate(m_fbos, m_fbos.begin() + 1);
+      cur_image += 1;
+      if (cur_image >= images.size()) {
+          cur_image = 0;
+      }
+      CreateFBO();
       this->update();
   }
 
   auto ImageViewer::OnPrevButtonPressed() -> void {
       std::println("Prev Button was Pressed! We are in the backend.");
       // std::swap(m_fbos[0], m_fbos[2]);
-      std::ranges::rotate(m_fbos, m_fbos.end() - 1);
+      // std::ranges::rotate(m_fbos, m_fbos.end() - 1);
+      cur_image -= 1;
+      if (cur_image < 0) {
+          cur_image = (int)images.size() - 1;
+      }
+      CreateFBO();
       this->update();
   }
 

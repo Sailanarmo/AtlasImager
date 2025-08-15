@@ -132,9 +132,13 @@ namespace AtlasModel
         std::sort(bestFits.begin(), bestFits.end());
         std::ranges::for_each(bestFits, [](const auto& image)
         {
-          auto msg = std::string{"AddImage," + image};
-          AtlasMessenger::Messenger::Instance().SendMessage(msg.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
+          // auto msg = std::string{"AddImage," + image};
+          auto new_msg = std::string("AddImageVector," + image);
+          AtlasMessenger::Messenger::Instance().SendMessage(new_msg.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
         });
+        auto new_msg = std::string{"SetImage,image"};
+        AtlasMessenger::Messenger::Instance().SendMessage(new_msg.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
+
       }
       else if(command == "LoadDataSet")
       {
