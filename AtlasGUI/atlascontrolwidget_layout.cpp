@@ -61,32 +61,61 @@ namespace AtlasGUI
     auto label = new QLabel{"Image Path"};
     auto lineEdit = new QLineEdit{};
     auto browseButton = new QPushButton{"Browse"};
-    auto loadImageButton = new QPushButton{"Load Image"};
-    auto findBestMatchButton = new QPushButton{"Find Best Match"};
+    auto renderImageButton = new QPushButton{"Render Image"};
+    auto loadAllModelImagesButton = new QPushButton{"Load All Model Images"};
+
+    // TODO: Implement matching functionality
+    //auto findBestMatchButton = new QPushButton{"Find Best Match"};
 
     lineEdit->setReadOnly(true);
     
     layout->addWidget(label);
     layout->addWidget(lineEdit);
     layout->addWidget(browseButton);
-    layout->addWidget(loadImageButton);
-    layout->addWidget(findBestMatchButton);
+    layout->addWidget(renderImageButton);
+    layout->addWidget(loadAllModelImagesButton);
+    //layout->addWidget(findBestMatchButton);
 
-    loadImageButton->setEnabled(false);
-    findBestMatchButton->setEnabled(false);
+    renderImageButton->setEnabled(false);
+    loadAllModelImagesButton->setEnabled(false);
+    //findBestMatchButton->setEnabled(false);
     
-    QObject::connect(browseButton, &QPushButton::clicked, [lineEdit, loadImageButton]()
+    QObject::connect(browseButton, &QPushButton::clicked, [lineEdit, renderImageButton]()
     {
       auto path = QFileDialog::getOpenFileName();
       lineEdit->setText(path);
       if(!path.isEmpty())
-        loadImageButton->setEnabled(true);
+        renderImageButton->setEnabled(true);
       else
-        loadImageButton->setEnabled(false); // Disable it again.
+        renderImageButton->setEnabled(false); // Disable it again.
     });
 
     auto messenger = &AtlasMessenger::Messenger::Instance();
 
+    QObject::connect(renderImageButton, &QPushButton::clicked, [lineEdit, loadAllModelImagesButton, messenger, this](){
+      auto path = lineEdit->text().toStdString();
+      // bail, no path
+      if(path.empty())
+        return;
+
+      messenger->UpdateState(AtlasCommon::AtlasImageViewerState::LoadImage, AtlasCommon::AtlasClasses::AtlasImageViewer, path);
+
+      loadAllModelImagesButton->setEnabled(true); 
+      m_renderingOptionsWidget->setEnabled(true); // Enable rendering options once an image is loaded.
+    });
+
+    QObject::connect(loadAllModelImagesButton, &QPushButton::clicked, [this, lineEdit, messenger](){
+      auto imgToProcess = lineEdit->text().toStdString();
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Loading all model images for: {}", imgToProcess);
+      messenger->UpdateState(AtlasCommon::AtlasModelState::LoadAllModelImages, AtlasCommon::AtlasClasses::AtlasModel);
+
+      if (nextButton && prevButton) {
+          nextButton->setEnabled(true);
+          prevButton->setEnabled(true);
+      }
+    });
+
+    /*
     QObject::connect(loadImageButton, &QPushButton::clicked, [lineEdit, findBestMatchButton, messenger](){
       auto path = lineEdit->text().toStdString();
       // bail, no path
@@ -109,6 +138,7 @@ namespace AtlasGUI
           prevButton->setEnabled(true);
       }
     });
+    */
     
     this->addWidget(m_imagePathWidget);
   }
@@ -224,6 +254,5 @@ namespace AtlasGUI
       m_logger.Log(AtlasLogger::LogLevel::Error, "Unknown Rat Brain Model selected: {}", dataSet);
     
   }
-
 
 }

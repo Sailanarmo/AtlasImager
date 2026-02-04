@@ -33,8 +33,9 @@ namespace AtlasMessenger
 
       auto UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID) -> void;
       auto UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID, const std::string_view imageInformation) -> void;
+      auto UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID, const std::string_view mainLabelText, const std::string_view progressBarTextformat) -> void;
       auto UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID, const int value) -> void;
-      auto UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID, const AtlasCommon::AtlasDataSet dataSet) -> void;
+
       auto SetImageViewer(AtlasImageViewer::ImageViewer* imageViewer) -> void;
       auto SetModel(AtlasModel::Model* model) -> void;
 

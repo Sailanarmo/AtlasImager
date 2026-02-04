@@ -63,14 +63,21 @@ namespace AtlasImageViewer
     CleanUp();
     m_offscreensurface.reset();
     
+    /*
     std::ranges::for_each(m_fbos, [](auto& fbo){
       if(fbo.first)
         fbo.first.reset();
     });
+    */
+
+    std::ranges::for_each(m_fbos, [](auto& fbo){
+      if(fbo)
+        fbo.reset();
+    });
 
   }
 
-  auto ImageViewer::LoadImage(const std::string_view imagePath) -> void
+  auto ImageViewer::RenderMainImage(const std::string_view imagePath) -> void
   {
     m_logger.Log(AtlasLogger::LogLevel::Info, "Loading image from path: {}", imagePath);
     this->makeCurrent();
@@ -93,7 +100,7 @@ namespace AtlasImageViewer
 
     m_logger.Log(AtlasLogger::LogLevel::Info, "Created FBO with size: {}x{}", m_fbo->size().width(), m_fbo->size().height());
 
-    DrawToFBO(m_fbo.get(), gl_funcs, texture);
+    this->DrawToFBO(m_fbo.get(), gl_funcs, texture);
 
     gl_funcs->glDeleteTextures(1, &texture);
 
@@ -132,15 +139,6 @@ namespace AtlasImageViewer
     return glImage;
   }
 
-  auto ImageViewer::CreateNewContext() -> std::unique_ptr<QOpenGLContext>
-  {
-    auto newContext = std::make_unique<QOpenGLContext>();
-    newContext->setFormat(this->context()->format());
-    newContext->setShareContext(this->context());
-    newContext->create();
-    return newContext;
-  }
-
   auto ImageViewer::CreateTexture(const QImage& image, QOpenGLFunctions* gl_funcs) -> GLuint
   {
     auto textureId = GLuint{};
@@ -164,6 +162,13 @@ namespace AtlasImageViewer
     return fbo;
   }
 
+  auto ImageViewer::AddFBOToVector(std::unique_ptr<QOpenGLFramebufferObject>&& fbo) -> void
+  {
+    m_fbos.emplace_back(std::move(fbo));
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Successfully added FBO to vector. Total now: {}", m_fbos.size());
+  }
+
+  /*
   auto ImageViewer::AddFBOToArray(std::unique_ptr<QOpenGLFramebufferObject>&& fbo, const double weight) -> void
   {
       m_fbos.emplace_back(std::move(fbo), weight);
@@ -189,21 +194,20 @@ namespace AtlasImageViewer
 //    }
 //    std::println("Successfully added FBO to array");
   }
+  */
 
-  // should this be a unique_ptr of an OpenCV Mat passed in by rvalue?
-  // or should this be an array of images already sorted? 
-  auto ImageViewer::AddImage(const std::string_view imagePath, const double weight) -> void
+  auto ImageViewer::AddImage(const std::string_view imagePath) -> void
   {
-    const auto curImagePath = std::move(imagePath);
+    auto image = CreateImage(imagePath);
 
-    auto image = CreateImage(curImagePath);
+    if(!m_offscreenContext || !m_offscreensurface)
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Error, "Offscreen context/surface not initialized; cannot AddImage");
+      return;
+    }
 
-    auto tempContext = std::move(CreateNewContext());
-
-    m_logger.Log(AtlasLogger::LogLevel::Info, "Created new OpenGL context for image addition.");
-    tempContext->makeCurrent(m_offscreensurface.get());
-
-    auto gl_funcs = tempContext->functions();
+    m_offscreenContext->makeCurrent(m_offscreensurface.get());
+    auto gl_funcs = m_offscreenContext->functions();
     auto textureId = CreateTexture(image, gl_funcs);
 
     m_logger.Log(AtlasLogger::LogLevel::Info, "Created texture for image addition with ID: {}", textureId);
@@ -218,14 +222,64 @@ namespace AtlasImageViewer
 
     m_logger.Log(AtlasLogger::LogLevel::Info, "Created FBO for image addition with size: {}x{}", fbo->size().width(), fbo->size().height());
 
-    DrawToFBO(fbo.get(), gl_funcs, textureId);
+    this->DrawToFBO(fbo.get(), gl_funcs, textureId);
 
-    AddFBOToArray(std::move(fbo), weight);
+    gl_funcs->glDeleteTextures(1, &textureId);
+
+    m_offscreenContext->doneCurrent();
+
+    this->AddFBOToVector(std::move(fbo));
+
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Adding FBO to Vector. Total now: {}", m_fbos.size());
+  }
+
+
+  // should this be a unique_ptr of an OpenCV Mat passed in by rvalue?
+  // or should this be an array of images already sorted? 
+  auto ImageViewer::AddImageWithWeight(const std::string_view imagePath, const double weight) -> void
+  {
+    auto image = CreateImage(imagePath);
+
+    if(!m_offscreenContext || !m_offscreensurface)
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Error, "Offscreen context/surface not initialized; cannot AddImageWithWeight");
+      return;
+    }
+
+    m_offscreenContext->makeCurrent(m_offscreensurface.get());
+    auto gl_funcs = m_offscreenContext->functions();
+    auto textureId = CreateTexture(image, gl_funcs);
+
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Created texture for image addition with ID: {}", textureId);
+
+    auto fbo = CreateFrameBuffer(image.size());
+
+    if(!fbo->isValid())
+    {
+      fbo.reset();
+      gl_funcs->glDeleteTextures(1, &textureId);
+    }
+
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Created FBO for image addition with size: {}x{}", fbo->size().width(), fbo->size().height());
+
+    this->DrawToFBO(fbo.get(), gl_funcs, textureId);
+
+    gl_funcs->glDeleteTextures(1, &textureId);
+
+    m_offscreenContext->doneCurrent();
+
+    //this->AddFBOToArray(std::move(fbo), weight);
 
     m_logger.Log(AtlasLogger::LogLevel::Info, "Adding FBO to Array. Total now: {}", m_fbos.size());
   }
 
   auto ImageViewer::ProcessAddImage(const std::string_view imageInformation) -> void
+  {
+    this->AddImage(imageInformation);
+    //TODO: Blend and render the images.
+  }
+
+  auto ImageViewer::ProcessAddImageWithWeight(const std::string_view imageInformation) -> void
   {
     // Parse imageInformation to get image path and weight
     auto [imagePath, weight] = ParseImageInformation(imageInformation).value_or(std::pair{"", 0.0});
@@ -236,8 +290,7 @@ namespace AtlasImageViewer
       return;
     }
 
-    this->AddImage(imagePath, weight);
-    //TODO: Blend and render the images.
+    this->AddImageWithWeight(imagePath, weight);
   }
 
   auto ImageViewer::HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view imageInformation) -> void
@@ -251,13 +304,21 @@ namespace AtlasImageViewer
         m_logger.Log(AtlasLogger::LogLevel::Info, "Displaying loading popup");
         emit this->DisplayLoadingModelPopupSignal();
         break;
+      case AtlasCommon::AtlasImageViewerState::DestroyPopup:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Destroying loading popup");
+        emit this->DestroyLoadingModelPopupSignal();
+        break;
       case AtlasCommon::AtlasImageViewerState::AddImage:
         m_logger.Log(AtlasLogger::LogLevel::Info, "Adding an image");
         this->ProcessAddImage(imageInformation);
         break;
+      case AtlasCommon::AtlasImageViewerState::AddImageWithWeight:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Adding an image with weight");
+        this->ProcessAddImageWithWeight(imageInformation);
+        break;
       case AtlasCommon::AtlasImageViewerState::LoadImage:
         m_logger.Log(AtlasLogger::LogLevel::Info, "Loading an image");
-        this->LoadImage(imageInformation);
+        this->RenderMainImage(imageInformation);
         break;
       case AtlasCommon::AtlasImageViewerState::NextImage:
         m_logger.Log(AtlasLogger::LogLevel::Info, "Next Image requested");
@@ -274,6 +335,19 @@ namespace AtlasImageViewer
       case AtlasCommon::AtlasImageViewerState::RotateImage:
         m_logger.Log(AtlasLogger::LogLevel::Info, "Rotate Image requested");
         this->RotateImage(std::string{imageInformation});
+        break;
+      default:
+        break;
+    }
+  }
+
+  auto ImageViewer::HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view mainLabelText, const std::string_view progressBarTextformat) -> void
+  {
+    switch(state)
+    {
+      case AtlasCommon::AtlasImageViewerState::ConstructPopup:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Constructing Popup");
+        emit CreateLoadingModelPopupSignal(mainLabelText, progressBarTextformat);
         break;
       default:
         break;
@@ -297,29 +371,30 @@ namespace AtlasImageViewer
     }
   }
 
-  auto ImageViewer::HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const AtlasCommon::AtlasDataSet dataSet) -> void
-  {
-    switch(state)
-    {
-      case AtlasCommon::AtlasImageViewerState::ConstructPopup:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Constructing Popup for {}", AtlasCommon::DataSetToString(dataSet));
-        emit CreateLoadingModelPopupSignal(dataSet);
-        break;
-      case AtlasCommon::AtlasImageViewerState::DestroyPopup:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Closing Popup for {}", AtlasCommon::DataSetToString(dataSet));
-        emit DestroyLoadingModelPopupSignal();
-        break;
-      default:
-        break;
-    }
-  }
-
   auto ImageViewer::initializeGL() -> void
   {
     initializeOpenGLFunctions();
     m_offscreensurface = std::make_unique<QOffscreenSurface>();
     m_offscreensurface->setFormat(this->context()->format());
     m_offscreensurface->create();
+
+    m_offscreenContext = std::make_unique<QOpenGLContext>();
+    m_offscreenContext->setFormat(this->context()->format());
+    m_offscreenContext->setShareContext(this->context());
+    if(!m_offscreenContext->create())
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Error, "Failed to create persistent offscreen OpenGL context");
+      m_offscreenContext.reset();
+      return;
+    }
+
+    if(!m_offscreenContext->makeCurrent(m_offscreensurface.get()))
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Error, "Failed to make persistent offscreen context current");
+      m_offscreenContext.reset();
+      return;
+    }
+    m_offscreenContext->doneCurrent();
   }
 
   auto ImageViewer::resizeGL(int w, int h) -> void
@@ -367,9 +442,25 @@ namespace AtlasImageViewer
 
 
     // Draw Base FBO
+    /*
     if(!m_fbos.empty() && m_fbos[0].first && m_fbos[0].first->isValid()) {
       glPushMatrix();
       glBindTexture(GL_TEXTURE_2D, m_fbos[0].first->texture());
+      glColor4f(1.0, 1.0, 1.0,1.0);
+      glScalef(scale_size, scale_size, 1.0f);
+      glBegin(GL_QUADS);
+      glTexCoord2f(0.0f + xPos, 0.0f + yPos); glVertex2f(-scaleX, -scaleY);
+      glTexCoord2f(1.0f + xPos, 0.0f + yPos); glVertex2f(scaleX, -scaleY);
+      glTexCoord2f(1.0f + xPos, 1.0f + yPos); glVertex2f(scaleX, scaleY);
+      glTexCoord2f(0.0f + xPos, 1.0f + yPos); glVertex2f(-scaleX, scaleY);
+      glEnd();
+      glPopMatrix();
+    }
+    */
+
+    if(!m_fbos.empty() && m_fbos[0] && m_fbos[0]->isValid()) {
+      glPushMatrix();
+      glBindTexture(GL_TEXTURE_2D, m_fbos[0]->texture());
       glColor4f(1.0, 1.0, 1.0,1.0);
       glScalef(scale_size, scale_size, 1.0f);
       glBegin(GL_QUADS);
@@ -423,7 +514,8 @@ namespace AtlasImageViewer
   auto ImageViewer::OnNextButtonPressed() -> void 
   {
     m_logger.Log(AtlasLogger::LogLevel::Info, "Swapping to next image.");
-    std::swap(m_fbo, m_fbos[0].first);
+    //std::swap(m_fbo, m_fbos[0].first);
+    std::swap(m_fbo, m_fbos[0]);
 
     // Performs a left rotation on the vector
     std::ranges::rotate(m_fbos, m_fbos.begin() + 1);
@@ -433,7 +525,8 @@ namespace AtlasImageViewer
   auto ImageViewer::OnPrevButtonPressed() -> void 
   {
     m_logger.Log(AtlasLogger::LogLevel::Info, "Swapping to previous image.");
-    std::swap(m_fbo, m_fbos[m_fbos.size() - 1].first);
+    //std::swap(m_fbo, m_fbos[m_fbos.size() - 1].first);
+    std::swap(m_fbo, m_fbos[m_fbos.size() - 1]);
 
     // Performs a right rotation on the vector
     std::ranges::rotate(m_fbos, m_fbos.end() - 1);

@@ -23,7 +23,7 @@ namespace AtlasGUI
     ~AtlasMainWindowLayout() = default;
   
   public slots:
-    auto CreateLoadingModelPopup(const AtlasCommon::AtlasDataSet dataSet) -> void;
+    auto CreateLoadingModelPopup(const std::string_view mainLabelText, const std::string_view progressBarTextFormat) -> void;
     auto SetMaximumProgressBarValue(const int max) -> void;
     auto UpdateProgressBarValue(const int value) -> void;
     auto DisplayLoadingModelPopup() -> void;

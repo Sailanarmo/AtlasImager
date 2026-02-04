@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <expected>
 #include <string_view>
 
 /*
@@ -23,11 +24,14 @@ namespace AtlasModel
   class Model
   {
     public:
-      Model();
+      enum class LoadDataSetResult
+      {
+        Success,
+        PathNotFound,
+        NoImagesFound
+      };
 
-      // auto GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>;
-      auto GetBestFits(const std::string_view imageName) -> std::vector<std::string>;
-      auto LoadDataSet(const AtlasCommon::AtlasDataSet dataSet) -> void;
+      Model();
 
       auto HandleStateUpdate(const AtlasCommon::AtlasModelState state, const std::string_view userImage = "") -> void;
     
@@ -40,7 +44,13 @@ namespace AtlasModel
       auto GetQueryDescriptors(const AtlasImage::Image& img) -> AtlasImage::Image;
       auto CalculateMatchScore(const AtlasImage::Image& targetDescriptors, 
                                const AtlasImage::Image& modelDescriptors) -> std::pair<std::string, double>;
-      auto ProcessBestFits(const std::string_view imageName) -> void;
+      //auto ProcessBestFits(const std::string_view imageName) -> void;
+      // auto GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>;
+      auto GetAllModelImagePaths() -> std::expected<std::vector<std::string>, LoadDataSetResult>;
+      auto LoadDataSet(const AtlasCommon::AtlasDataSet dataSet) -> void;
+      auto LoadAllDataSetImages(const AtlasCommon::AtlasDataSet dataSet) -> void;
+
+      AtlasCommon::AtlasDataSet m_loadedDataSet{AtlasCommon::AtlasDataSet::LGN};
       
   };
 }

@@ -45,25 +45,12 @@ namespace AtlasGUI
     m_atlasimageViewerContainer->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
   }
 
-  auto AtlasMainWindowLayout::CreateLoadingModelPopup(const AtlasCommon::AtlasDataSet dataSet) -> void
+  auto AtlasMainWindowLayout::CreateLoadingModelPopup(const std::string_view mainLabelText, const std::string_view progressBarTextFormat) -> void
   {
-    m_logger.Log(AtlasLogger::LogLevel::Info, "Creating loading model popup for dataset: {}", AtlasCommon::DataSetToString(dataSet));
-    std::string datasetName;
-    switch(dataSet)
-    {
-      case AtlasCommon::AtlasDataSet::LGN:
-        datasetName = "LGN";
-        break;
-      case AtlasCommon::AtlasDataSet::PAG:
-        datasetName = "PAG";
-        break;
-      default:
-        datasetName = "Unknown Dataset";
-        break;
-    }
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Creating loading model popup with main text: '{}' and format: '{}'", mainLabelText, progressBarTextFormat);
 
-    auto mainLoadingText = QString::fromStdString("Loading " + datasetName + " Model...");
-    auto format = QString::fromStdString("%v of %m " + datasetName + " Images loaded %p%");
+    auto mainLoadingText = QString::fromStdString(std::string{mainLabelText});
+    auto format = QString::fromStdString(std::string{progressBarTextFormat});
 
     m_logger.Log(AtlasLogger::LogLevel::Info, "Emitting signal to create loading popup with main text: '{}' and format: '{}'", mainLoadingText.toStdString(), format.toStdString());
 

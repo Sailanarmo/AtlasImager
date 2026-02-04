@@ -10,7 +10,8 @@ namespace AtlasCommon
   enum class AtlasDataSet : std::uint8_t
   {
     LGN = 0,
-    PAG
+    PAG,
+    NONE
   };
 
   enum class AtlasModelState : std::uint8_t
@@ -19,6 +20,7 @@ namespace AtlasCommon
     LoadLGNModel,
     LoadPAGModel,
     ModelPAGLoaded,
+    LoadAllModelImages,
     FindingBestFits,
     SendingBestFits,
     LoadingUserImage,
@@ -38,6 +40,8 @@ namespace AtlasCommon
     DisplayPopup,
     DestroyPopup,
     AddImage,
+    AddImageWithWeight,
+    LoadAllModelImages,
     LoadImage,
     NextImage,
     PreviousImage,
@@ -55,7 +59,8 @@ namespace AtlasCommon
   static const std::unordered_map<std::string, AtlasDataSet> AtlasDataSetNames
   {
     {"LGN", AtlasDataSet::LGN},
-    {"PAG", AtlasDataSet::PAG}
+    {"PAG", AtlasDataSet::PAG},
+    {"NONE", AtlasDataSet::NONE}
   };
 
   static auto DataSetToString(const AtlasDataSet dataSet) -> std::string
@@ -66,6 +71,8 @@ namespace AtlasCommon
         return "LGN";
       case AtlasDataSet::PAG:
         return "PAG";
+      case AtlasDataSet::NONE:
+        return "NONE";
       default:
         return "Unknown";
     }

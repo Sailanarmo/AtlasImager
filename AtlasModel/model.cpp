@@ -13,9 +13,6 @@
 #include <algorithm>
 #include <filesystem>
 
-#include <print>
-
-#include <expected>
 
 #include <QCoreApplication>
 
@@ -29,14 +26,8 @@ namespace AtlasModel
 
   static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/Model.log", "AtlasModel::Model"};
 
-  enum class LoadDataSetResult
-  {
-    Success,
-    PathNotFound,
-    NoImagesFound
-  };
 
-  auto GetImages(const std::filesystem::path& datasetPath) -> std::expected<std::vector<AtlasImage::Image>, LoadDataSetResult>
+  auto GetImages(const std::filesystem::path& datasetPath) -> std::expected<std::vector<AtlasImage::Image>, Model::LoadDataSetResult>
   {
     auto images = std::vector<AtlasImage::Image>{};
 
@@ -44,7 +35,7 @@ namespace AtlasModel
     {
       // Should not happen if paths are correct
       m_logger.Log(AtlasLogger::LogLevel::Error, "Dataset path not found: {}", datasetPath.string());
-      return std::unexpected(LoadDataSetResult::PathNotFound);
+      return std::unexpected(Model::LoadDataSetResult::PathNotFound);
     }
     else
     {
@@ -70,7 +61,7 @@ namespace AtlasModel
     if(images.empty())
     {
       m_logger.Log(AtlasLogger::LogLevel::Warning, "No images found in dataset path: {}", datasetPath.string());
-      return std::unexpected(LoadDataSetResult::NoImagesFound);
+      return std::unexpected(Model::LoadDataSetResult::NoImagesFound);
     }
     return images;
   }
@@ -89,20 +80,20 @@ namespace AtlasModel
 
     auto atlasDescriptor = AtlasImage::Image{img.GetImageName()};
     atlasDescriptor.CloneData(descriptors);
-    std::println("Query Descriptors obtained and Data cloned.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Obtained {} keypoints for image: {}", keyPoints.size(), img.GetImageName());
     return atlasDescriptor;
   }
 
   auto Model::CalculateMatchScore(const AtlasImage::Image& targetDescriptors, const AtlasImage::Image& modelDescriptors) -> std::pair<std::string,double>
   {
-    std::println("Calculating the score.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Calculating match score between target: {} and model: {}", targetDescriptors.GetImageName(), modelDescriptors.GetImageName());
     auto brute_forceMatcher = cv::BFMatcher(cv::NORM_HAMMING, true);
     auto matches = std::vector<cv::DMatch>{};
 
-    std::println("Attempting to get matches");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Matching descriptors...");
     brute_forceMatcher.match(*targetDescriptors.GetImage(), *modelDescriptors.GetImage(), matches);
 
-    std::println("Caculating the distances");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Calculating the distances");
     auto totalDistance = double{0.0};
 
     std::ranges::for_each(matches, [&totalDistance](const cv::DMatch& match){
@@ -113,6 +104,7 @@ namespace AtlasModel
   }
 
   // Should this return by rvalue reference?
+  /*
   auto Model::GetBestFits(const std::string_view imageName) -> std::vector<std::string> {
     auto bestFits = std::vector<std::string>{};
     double num = 0;
@@ -124,6 +116,7 @@ namespace AtlasModel
     }
     return bestFits;
   }
+  */
 //  auto Model::GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>
 //  {
 //    auto bestFits = std::array<std::string,3>{};
@@ -165,22 +158,84 @@ namespace AtlasModel
 
     const auto dataSetPath = std::filesystem::path{currentPath + modelPath};
 
-    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::ConstructPopup, AtlasCommon::AtlasClasses::AtlasImageViewer, dataSet);
+    const auto mainLabelText = "Loading " + AtlasCommon::DataSetToString(dataSet) + " Model Images...";
+    const auto progressBarTextFormat = "%v of %m " + AtlasCommon::DataSetToString(dataSet) + " Images loaded %p%";
+
+    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::ConstructPopup, AtlasCommon::AtlasClasses::AtlasImageViewer, mainLabelText, progressBarTextFormat);
 
     m_images = GetImages(dataSetPath).value_or(std::vector<AtlasImage::Image>{});
 
     if(m_images.empty())
     {
       m_logger.Log(AtlasLogger::LogLevel::Error, "No images found in dataset at path: {}", dataSetPath.string());
-      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DestroyPopup, AtlasCommon::AtlasClasses::AtlasImageViewer, dataSet); 
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DestroyPopup, AtlasCommon::AtlasClasses::AtlasImageViewer); 
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);
     }
     else
     {
       m_logger.Log(AtlasLogger::LogLevel::Info, "Successfully loaded {} images from dataset", m_images.size());
-      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DestroyPopup, AtlasCommon::AtlasClasses::AtlasImageViewer, dataSet); 
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DestroyPopup, AtlasCommon::AtlasClasses::AtlasImageViewer); 
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);
     }
   }
 
+  auto Model::GetAllModelImagePaths() -> std::expected<std::vector<std::string>, LoadDataSetResult>
+  {
+    auto imagePaths = std::vector<std::string>{};
+    for(const auto& image : m_images)
+    {
+      imagePaths.emplace_back(std::string{image.GetImageName()});
+    }
+
+    if(imagePaths.empty())
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Error, "No model images loaded to retrieve paths from.");
+      return std::unexpected(LoadDataSetResult::NoImagesFound);
+    }
+
+    return imagePaths;
+  }
+
+  auto Model::LoadAllDataSetImages(const AtlasCommon::AtlasDataSet dataSet) -> void
+  {
+    if(m_images.empty())
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Error, "No model images loaded to retrieve paths from.");
+      return;
+    }
+
+    const auto mainLabelText = "Rendering All " + AtlasCommon::DataSetToString(dataSet) + " Model Images...";
+    const auto progressBarTextFormat = "%v of %m " + AtlasCommon::DataSetToString(dataSet) + " Images rendered %p%";
+
+    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::ConstructPopup, AtlasCommon::AtlasClasses::AtlasImageViewer, mainLabelText, progressBarTextFormat);
+    const auto imagePaths = this->GetAllModelImagePaths().value_or(std::vector<std::string>{});
+
+    if(imagePaths.empty())
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Error, "No model image paths retrieved.");
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DestroyPopup, AtlasCommon::AtlasClasses::AtlasImageViewer); 
+      return;
+    }
+   
+    const auto count = static_cast<int>(imagePaths.size());
+    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::SetMaximumProgressBarValue, AtlasCommon::AtlasClasses::AtlasImageViewer, count);
+    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DisplayPopup, AtlasCommon::AtlasClasses::AtlasImageViewer);
+      
+    // Give the GUI event loop a chance to display the popup before we start the blocking image load
+    QCoreApplication::processEvents();
+
+    for(const auto& [index, path] : std::views::enumerate(imagePaths))
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Sending model image to ImageViewer: {}", path);
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::AddImage, AtlasCommon::AtlasClasses::AtlasImageViewer, path);
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::UpdateProgressBarValue, AtlasCommon::AtlasClasses::AtlasImageViewer, index + 1);
+    }
+
+    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DestroyPopup, AtlasCommon::AtlasClasses::AtlasImageViewer); 
+    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);
+  }
+
+  /*
   auto Model::ProcessBestFits(const std::string_view imageName) -> void
   {
     auto bestFits = this->GetBestFits(imageName);
@@ -192,6 +247,7 @@ namespace AtlasModel
 
     AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);
   }
+  */
 
   auto Model::HandleStateUpdate(const AtlasCommon::AtlasModelState state, const std::string_view userImage) -> void
   {
@@ -202,25 +258,31 @@ namespace AtlasModel
         return;
       case AtlasCommon::AtlasModelState::LoadLGNModel:
         m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Loading LGN Model Data...");
+        m_loadedDataSet = AtlasCommon::AtlasDataSet::LGN;
         std::jthread(
           [this]()
           {
-            this->LoadDataSet(AtlasCommon::AtlasDataSet::LGN);
+            this->LoadDataSet(m_loadedDataSet);
           }
         ).detach();
         break;
       case AtlasCommon::AtlasModelState::LoadPAGModel:
         m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Loading PAG Model Data...");
+        m_loadedDataSet = AtlasCommon::AtlasDataSet::PAG;
         std::jthread(
           [this]()
           {
-            this->LoadDataSet(AtlasCommon::AtlasDataSet::PAG);
+            this->LoadDataSet(m_loadedDataSet);
           }
         ).detach();
         break;
+      case AtlasCommon::AtlasModelState::LoadAllModelImages:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Loading All Model Images...");
+        this->LoadAllDataSetImages(m_loadedDataSet);
+        break;
       case AtlasCommon::AtlasModelState::FindingBestFits:
         m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Finding Best Fits...");
-        this->ProcessBestFits(userImage);
+        //this->ProcessBestFits(userImage);
         break;
       default:
         break;
