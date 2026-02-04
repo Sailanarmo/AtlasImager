@@ -147,6 +147,7 @@ namespace AtlasGUI
       auto messenger = &AtlasMessenger::Messenger::Instance();
       messenger->SendMessage("ResetImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
+    m_renderingOptionsWidget->setEnabled(false); // Disabled until Images are loaded.
     this->addWidget(m_renderingOptionsWidget);
   }
    

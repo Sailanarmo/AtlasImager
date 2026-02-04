@@ -150,48 +150,56 @@ namespace AtlasModel
     if(m_images.empty())
     {
       m_logger.Log(AtlasLogger::LogLevel::Error, "No images found in dataset at path: {}", dataSetPath.string());
-      AtlasMessenger::Messenger::Instance().SendMessage("No images found in dataset", AtlasCommon::AtlasClasses::AtlasImageViewer);
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);
     }
     else
     {
       m_logger.Log(AtlasLogger::LogLevel::Info, "Successfully loaded {} images from dataset", m_images.size());
-      AtlasMessenger::Messenger::Instance().SendMessage("Images loaded successfully", AtlasCommon::AtlasClasses::AtlasImageViewer); 
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer); 
     }
   }
 
-  auto Model::HandleMessage(const char* message) -> void
+  auto Model::ProcessBestFits(const std::string_view imageName) -> void
   {
-    auto msg = std::string{message};
-
-    auto commaPos = msg.find(',');
-    if(commaPos != std::string::npos)
+    auto bestFits = this->GetBestFits(imageName);
+    std::sort(bestFits.begin(), bestFits.end());
+    std::ranges::for_each(bestFits, [](const auto& image)
     {
-      auto command = msg.substr(0, commaPos);
-      auto argument = msg.substr(commaPos + 1);
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::AddImage, AtlasCommon::AtlasClasses::AtlasImageViewer);
+    });
 
-      if(command == "GetBestFits")
-      {
-        std::println("GetBestFits called");
-        auto bestFits = GetBestFits(argument);
-        std::sort(bestFits.begin(), bestFits.end());
-        std::ranges::for_each(bestFits, [](const auto& image)
-        {
-          auto msg = std::string{"AddImage," + image};
-          AtlasMessenger::Messenger::Instance().SendMessage(msg.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
-        });
-      }
-      else if(command == "LoadDataSet")
-      {
-        std::println("Loading dataset: {}", argument);
-        auto dataSet = static_cast<AtlasCommon::AtlasDataSet>(std::stoi(argument));
-        LoadDataSet(dataSet);
-      }
+    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);
+  }
+
+  auto Model::HandleStateUpdate(const AtlasCommon::AtlasModelState state, const std::string_view userImage) -> void
+  {
+    switch(state)
+    {
+      case AtlasCommon::AtlasModelState::Idle:
+        // Do nothing
+        return;
+      case AtlasCommon::AtlasModelState::LoadingLGNModel:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Loading LGN Model Data...");
+        this->LoadDataSet(AtlasCommon::AtlasDataSet::LGN);
+        break;
+      case AtlasCommon::AtlasModelState::LoadingPAGModel:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Loading PAG Model Data...");
+        this->LoadDataSet(AtlasCommon::AtlasDataSet::PAG);
+        break;
+      case AtlasCommon::AtlasModelState::FindingBestFits:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Finding Best Fits...");
+        this->ProcessBestFits(userImage);
+        break;
+      default:
+        break;
     }
-
   }
 
   auto Model::InitializeModel() -> void
   {
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Model initialized.");
+    AtlasCommon::CurrentAtlasState = AtlasCommon::AtlasModelState::Idle;
+    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::CurrentAtlasState, AtlasCommon::AtlasClasses::AtlasImageViewer);
   }
 
 }

@@ -1,12 +1,9 @@
 #pragma once
 
+#include "AtlasCommon/atlasenums.hpp"
 #include <memory>
 #include <mutex>
 
-namespace AtlasCommon
-{
-  enum class AtlasClasses;
-}
 
 namespace AtlasImageViewer
 {
@@ -25,7 +22,7 @@ namespace AtlasModel
 * lag the UI.
 *
 * Sending a message allow direct communication between the classes. 
-* ex: AtlasMessenger::Messenger.Instance()->SendMessage("I am a command", AtlasCommon::AtlasClasses::Model);
+* ex: AtlasMessenger::Messenger.Instance()->UpdateState(AtlasCommon::AtlasState::Idle, AtlasCommon::AtlasClasses::Model);
 */
 namespace AtlasMessenger
 {
@@ -34,7 +31,7 @@ namespace AtlasMessenger
     public:
       static auto Instance() -> Messenger&;
 
-      auto SendMessage(const char* message, const AtlasCommon::AtlasClasses classID) -> void;
+      auto UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID) -> void;
       auto SetImageViewer(AtlasImageViewer::ImageViewer* imageViewer) -> void;
       auto SetModel(AtlasModel::Model* model) -> void;
 

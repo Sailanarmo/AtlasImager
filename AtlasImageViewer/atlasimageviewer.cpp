@@ -1,17 +1,55 @@
 #include "atlasimageviewer.hpp"
 
+#include "AtlasLogger/atlaslogger.hpp"
 #include "AtlasMessenger/atlasmessenger.hpp"
 
+
 #include <ranges>
-#include <algorithm>
 #include <print>
 #include <numbers>
+#include <expected>
+#include <charconv>
+#include <algorithm>
+
 #include <QImage>
 #include <QKeyEvent>
 #include <QFileDialog>
 
 namespace AtlasImageViewer
 {
+
+  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/ImageViewer.log", "AtlasImageViewer::ImageViewer"};
+
+  enum class ImageViewerError : std::uint8_t
+  {
+    ImageLoadFailed,
+    TextureCreationFailed,
+    FrameBufferCreationFailed
+  };
+
+  enum class StringParseResult : std::uint8_t
+  {
+    DelimiterNotFound,
+    ConversionFailed
+  };
+
+  auto ParseImageInformation(const std::string_view imageInformation) -> std::expected<std::pair<std::string_view, double>, StringParseResult>
+  {
+    auto colonPos = imageInformation.find(':');
+    if(colonPos != std::string::npos)
+    {
+      auto imagePath = imageInformation.substr(0, colonPos);
+      auto weight = double{0.0};
+      if(std::from_chars(imageInformation.data() + colonPos + 1, imageInformation.data() + imageInformation.size(), weight).ec != std::errc{})
+      {
+        return std::unexpected(StringParseResult::ConversionFailed);
+      }
+
+      return std::make_pair(imagePath, weight);
+    }
+    return std::unexpected(StringParseResult::DelimiterNotFound); 
+  }
+
   ImageViewer::ImageViewer() : m_textureId{0}
   {
     // std::ranges::fill(m_fbos, std::pair{nullptr, 0});
@@ -145,7 +183,7 @@ namespace AtlasImageViewer
 
   // should this be a unique_ptr of an OpenCV Mat passed in by rvalue?
   // or should this be an array of images already sorted? 
-  auto ImageViewer::AddImage(std::string&& imagePath, const double weight) -> void
+  auto ImageViewer::AddImage(const std::string_view imagePath, const double weight) -> void
   {
     const auto curImagePath = std::move(imagePath);
 
@@ -175,9 +213,28 @@ namespace AtlasImageViewer
 
   }
 
-  auto ImageViewer::HandleMessage(const char* message) -> void
+  auto ImageViewer::ProcessAddImage(const std::string_view imageInformation) -> void
   {
-    auto msg = std::string{message};
+    // Parse imageInformation to get image path and weight
+    auto [imagePath, weight] = ParseImageInformation(imageInformation).value_or(std::pair{"", 0.0});
+    this->AddImage(imagePath, weight);
+    //TODO: Blend and render the images.
+  }
+
+  auto ImageViewer::HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view imageInformation) -> void
+  {
+    switch(state)
+    {
+      case AtlasCommon::AtlasImageViewerState::Idle:
+        // Do nothing
+        return;
+      case AtlasCommon::AtlasImageViewerState::AddImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Adding an image");
+        this->ProcessAddImage(imageInformation);
+        break;
+      default:
+        break;
+    }
 
     auto commaPos = msg.find(',');
     if (commaPos != std::string::npos)
@@ -197,18 +254,6 @@ namespace AtlasImageViewer
       }
       else if (command == "AddImage")
       {
-        std::println("ImageViewer::HandleMessage:: AddImage");
-        std::println("ImageViewer::HandleMessage: argument: {}", argument);
-        auto colonPos = argument.find(':');
-        if(colonPos != std::string::npos)
-        {
-          auto imagePath = argument.substr(0, colonPos);
-          auto weight = std::stod(argument.substr(colonPos + 1));
-
-          std::println("ImageViewer::HandleMessage: adding the image {} with weight: {}", imagePath, weight);
-          AddImage(std::move(imagePath),weight);
-          //TODO: Blend and render the images.
-        }
       }
       else if (command == "NextButton") {
           // std::println("Next Button was Pressed! We are in the backend.");

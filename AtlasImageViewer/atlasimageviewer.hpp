@@ -35,11 +35,11 @@ namespace AtlasImageViewer
       ImageViewer();
       ~ImageViewer();
 
-      auto AddImage(std::string&& imagePath, const double weight) -> void;
+      auto AddImage(const std::string_view imagePath, const double weight) -> void;
       auto OnNextButtonPressed() -> void;
       auto OnPrevButtonPressed() -> void;
       auto OnSliderUpdated(double value) -> void;
-      auto HandleMessage(const char* message) -> void;
+      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view imageInformation = "") -> void;
       auto RotateImage(std::string&& imagePath) -> void;
       auto ResetImage() -> void;
       auto MoveImageLeft() -> void;
@@ -82,6 +82,7 @@ namespace AtlasImageViewer
       double overlay_scale_size{1.0};
 
       auto CleanUp() -> void;
+      auto ProcessAddImage(const std::string_view imageInformation) -> void;
       auto LoadImage(const std::string_view imagePath) -> void;
       auto CreateImage(const std::string_view imagePath) -> QImage;
       auto CreateNewContext() -> std::unique_ptr<QOpenGLContext>;
