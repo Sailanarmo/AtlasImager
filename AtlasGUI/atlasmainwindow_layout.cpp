@@ -29,6 +29,7 @@ namespace AtlasGUI
 
     QObject::connect(m_atlasimageViewer, &AtlasImageViewer::ImageViewer::CreateLoadingModelPopupSignal, this, &AtlasMainWindowLayout::CreateLoadingModelPopup);
     QObject::connect(m_atlasimageViewer, &AtlasImageViewer::ImageViewer::SetMaximumProgressBarValueSignal, this, &AtlasMainWindowLayout::SetMaximumProgressBarValue);
+    QObject::connect(m_atlasimageViewer, &AtlasImageViewer::ImageViewer::UpdateProgressBarValueSignal, this, &AtlasMainWindowLayout::UpdateProgressBarValue);
     QObject::connect(m_atlasimageViewer, &AtlasImageViewer::ImageViewer::DisplayLoadingModelPopupSignal, this, &AtlasMainWindowLayout::DisplayLoadingModelPopup);
     QObject::connect(m_atlasimageViewer, &AtlasImageViewer::ImageViewer::DestroyLoadingModelPopupSignal, this, &AtlasMainWindowLayout::DestroyLoadingModelPopup);
 
@@ -62,7 +63,8 @@ namespace AtlasGUI
     }
 
     auto mainLoadingText = QString::fromStdString("Loading " + datasetName + " Model...");
-    auto format = QString::fromStdString("Loading " + datasetName + " Images: %p%");
+    //auto format = QString::fromStdString("Loading " + datasetName + " Images: %p%");
+    auto format = QString::fromStdString("%v of %m " + datasetName + " Images loaded %p%");
 
     m_logger.Log(AtlasLogger::LogLevel::Info, "Emitting signal to create loading popup with main text: '{}' and format: '{}'", mainLoadingText.toStdString(), format.toStdString());
 
@@ -73,6 +75,12 @@ namespace AtlasGUI
   {
     m_logger.Log(AtlasLogger::LogLevel::Info, "Emitting signal to set maximum progress bar value: {}", max);
     emit SetMaximumProgressBarValueSignal(max);
+  }
+
+  auto AtlasMainWindowLayout::UpdateProgressBarValue(const int value) -> void
+  {
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Emitting signal to update progress bar value: {}", value);
+    emit UpdateProgressBarValueSignal(value);
   }
 
   auto AtlasMainWindowLayout::DisplayLoadingModelPopup() -> void

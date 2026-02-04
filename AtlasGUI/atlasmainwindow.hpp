@@ -18,6 +18,7 @@ namespace AtlasGUI
   public slots:
     auto CreateLoadingPopup(const QString& mainLoadingText, const QString& format) -> void;
     auto SetMaximumProgressBarValue(const int max) -> void;
+    auto UpdateProgressBarValue(const int value) -> void;
     auto DisplayLoadingPopup() -> void;
     auto DestroyLoadingPopup() -> void;
 

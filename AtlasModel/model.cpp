@@ -6,6 +6,8 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
 
+#include <mutex>
+#include <atomic>
 #include <thread>
 #include <ranges>
 #include <algorithm>
@@ -58,7 +60,7 @@ namespace AtlasModel
       // Give the GUI event loop a chance to display the popup before we start the blocking image load
       QCoreApplication::processEvents();
     }
-
+    
     for(const auto& [index, entry] : std::views::enumerate(std::filesystem::directory_iterator{datasetPath}) )
     {
       images.emplace_back(AtlasImage::Image(entry.path().string()));
@@ -200,11 +202,21 @@ namespace AtlasModel
         return;
       case AtlasCommon::AtlasModelState::LoadLGNModel:
         m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Loading LGN Model Data...");
-        this->LoadDataSet(AtlasCommon::AtlasDataSet::LGN);
+        std::jthread(
+          [this]()
+          {
+            this->LoadDataSet(AtlasCommon::AtlasDataSet::LGN);
+          }
+        ).detach();
         break;
       case AtlasCommon::AtlasModelState::LoadPAGModel:
         m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Loading PAG Model Data...");
-        this->LoadDataSet(AtlasCommon::AtlasDataSet::PAG);
+        std::jthread(
+          [this]()
+          {
+            this->LoadDataSet(AtlasCommon::AtlasDataSet::PAG);
+          }
+        ).detach();
         break;
       case AtlasCommon::AtlasModelState::FindingBestFits:
         m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Finding Best Fits...");

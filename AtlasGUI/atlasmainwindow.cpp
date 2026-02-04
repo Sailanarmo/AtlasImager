@@ -20,6 +20,7 @@ namespace AtlasGUI
     this->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
     QObject::connect(layout, &AtlasMainWindowLayout::CreateLoadingPopupSignal, this, &AtlasMainWindow::CreateLoadingPopup);
     QObject::connect(layout, &AtlasMainWindowLayout::SetMaximumProgressBarValueSignal, this, &AtlasMainWindow::SetMaximumProgressBarValue);
+    QObject::connect(layout, &AtlasMainWindowLayout::UpdateProgressBarValueSignal, this, &AtlasMainWindow::UpdateProgressBarValue);
     QObject::connect(layout, &AtlasMainWindowLayout::DisplayLoadingPopupSignal, this, &AtlasMainWindow::DisplayLoadingPopup);
     QObject::connect(layout, &AtlasMainWindowLayout::DestroyLoadingPopupSignal, this, &AtlasMainWindow::DestroyLoadingPopup);
   }
@@ -59,12 +60,25 @@ namespace AtlasGUI
   {
     if(m_loadingPopup)
     {
-      m_loadingPopup->UpdateProgressValue(max);
+      m_loadingPopup->SetMaxProgressBarValue(max);
       m_logger.Log(AtlasLogger::LogLevel::Info, "Set maximum progress bar value to {}", max);
     }
     else
     {
       m_logger.Log(AtlasLogger::LogLevel::Warning, "Attempted to set progress bar value but loading popup is null");
+    }
+  }
+
+  auto AtlasMainWindow::UpdateProgressBarValue(const int value) -> void
+  {
+    if(m_loadingPopup)
+    {
+      m_loadingPopup->UpdateProgressValue(value);
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Updated progress bar value to {}", value);
+    }
+    else
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Warning, "Attempted to update progress bar value but loading popup is null");
     }
   }
 }

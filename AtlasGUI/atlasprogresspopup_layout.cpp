@@ -1,7 +1,12 @@
 #include "atlasprogresspopup_layout.hpp"
 
+#include "AtlasLogger/atlaslogger.hpp"
+
 namespace AtlasGUI
 {
+
+  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/AtlasProgressPopupLayout.log", "AtlasGUI::AtlasProgressPopupLayout"};
+
   AtlasProgressPopupLayout::AtlasProgressPopupLayout(const QString& mainLoadingText, const QString& format, QWidget* parent) : QVBoxLayout{parent}
   {
     this->Initialize();
@@ -14,6 +19,7 @@ namespace AtlasGUI
     m_progressBar = new QProgressBar{};
     m_mainLoadingLabel = new QLabel{};
 
+    m_progressBar->setValue(0);
     this->addWidget(m_mainLoadingLabel);
     this->addWidget(m_progressBar);
   }
@@ -25,8 +31,9 @@ namespace AtlasGUI
 
   auto AtlasProgressPopupLayout::SetMaxProgressBarValue(const int max) -> void
   {
-    m_progressBar->setMinimum(0);
-    m_progressBar->setMaximum(max);
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Setting max progress bar value to {}", max);
+    m_progressBar->setRange(0, max);
+    m_progressBar->setValue(0);
   }
 
   auto AtlasProgressPopupLayout::SetProgressBarText(const QString& text) -> void
@@ -36,6 +43,7 @@ namespace AtlasGUI
 
   auto AtlasProgressPopupLayout::SetProgressValue(int value) -> void
   {
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Setting progress value to {}", value);
     m_progressBar->setValue(value);
   }
 
