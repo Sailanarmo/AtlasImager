@@ -16,6 +16,7 @@
 #include <QFileDialog>
 
 #include <QColor>
+#include <QMatrix4x4>
 
 namespace AtlasImageViewer
 {
@@ -203,6 +204,138 @@ namespace AtlasImageViewer
     }
   }
 
+  auto ImageViewer::SetOverlayLuminanceThreshold(double threshold255) -> void
+  {
+    m_overlayLuminanceThreshold = std::clamp(threshold255, 0.0, 255.0);
+    this->update();
+  }
+
+  auto ImageViewer::SetOverlayLuminanceFeather(double feather255) -> void
+  {
+    m_overlayLuminanceFeather = std::clamp(feather255, 0.0, 255.0);
+    this->update();
+  }
+
+  auto ImageViewer::SetOverlayBrightness(double brightness) -> void
+  {
+    m_overlayBrightness = std::max(0.0, brightness);
+    this->update();
+  }
+
+  auto ImageViewer::SetOverlayTint(const QVector3D& rgb01) -> void
+  {
+    m_overlayTint = QVector3D{
+      std::clamp(rgb01.x(), 0.0f, 1.0f),
+      std::clamp(rgb01.y(), 0.0f, 1.0f),
+      std::clamp(rgb01.z(), 0.0f, 1.0f)
+    };
+    this->update();
+  }
+
+  auto ImageViewer::EnsureQuadPipeline() -> void
+  {
+    if(m_quadPipelineReady)
+      return;
+
+    // Minimal textured-quad shader with transform + optional luminance discard.
+    static constexpr const char* kVert = R"(
+      #version 330 core
+      layout(location = 0) in vec2 a_pos;
+      layout(location = 1) in vec2 a_uv;
+      uniform mat4 u_mvp;
+      out vec2 v_uv;
+      void main() {
+        v_uv = a_uv;
+        gl_Position = u_mvp * vec4(a_pos, 0.0, 1.0);
+      }
+    )";
+
+    static constexpr const char* kFrag = R"(
+      #version 330 core
+      in vec2 v_uv;
+      uniform sampler2D u_tex;
+      uniform vec4 u_color;      // rgb tint + opacity multiplier in a
+      uniform float u_brightness;
+      uniform bool u_useLumaKey;
+      // UI-friendly units (0..255). We normalize to 0..1 for the luminance compare.
+      uniform float u_lumaThreshold255;
+      uniform float u_lumaFeather255;
+      out vec4 FragColor;
+      void main() {
+        vec4 texel = texture(u_tex, v_uv);
+        vec3 rgb = texel.rgb * u_brightness;
+        float a = texel.a;
+
+        if(u_useLumaKey) {
+          float lum = dot(texel.rgb, vec3(0.2126, 0.7152, 0.0722));
+          float thr = clamp(u_lumaThreshold255 / 255.0, 0.0, 1.0);
+          float fea = clamp(u_lumaFeather255 / 255.0, 0.0, 1.0);
+          float edge = smoothstep(thr, thr + max(fea, 1e-6), lum);
+          a *= edge;
+          if(a <= 0.001) discard;
+        }
+
+        vec4 outColor = vec4(rgb, a) * u_color;
+        FragColor = outColor;
+      }
+    )";
+
+    m_quadProgram = std::make_unique<QOpenGLShaderProgram>();
+    if(!m_quadProgram->addShaderFromSourceCode(QOpenGLShader::Vertex, kVert))
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Error, "Quad vertex shader compile failed: {}", m_quadProgram->log().toStdString());
+      m_quadProgram.reset();
+      return;
+    }
+    if(!m_quadProgram->addShaderFromSourceCode(QOpenGLShader::Fragment, kFrag))
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Error, "Quad fragment shader compile failed: {}", m_quadProgram->log().toStdString());
+      m_quadProgram.reset();
+      return;
+    }
+    if(!m_quadProgram->link())
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Error, "Quad program link failed: {}", m_quadProgram->log().toStdString());
+      m_quadProgram.reset();
+      return;
+    }
+
+    // Fullscreen quad (two triangles). Positions in NDC, UVs in [0,1].
+    struct Vertex { float x, y, u, v; };
+    static constexpr Vertex kVerts[] = {
+      {-1.0f, -1.0f, 0.0f, 0.0f},
+      { 1.0f, -1.0f, 1.0f, 0.0f},
+      { 1.0f,  1.0f, 1.0f, 1.0f},
+      {-1.0f, -1.0f, 0.0f, 0.0f},
+      { 1.0f,  1.0f, 1.0f, 1.0f},
+      {-1.0f,  1.0f, 0.0f, 1.0f}
+    };
+
+    if(!m_quadVbo.isCreated())
+      m_quadVbo.create();
+    m_quadVbo.bind();
+    m_quadVbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_quadVbo.allocate(kVerts, static_cast<int>(sizeof(kVerts)));
+
+    if(!m_quadVao.isCreated())
+      m_quadVao.create();
+    m_quadVao.bind();
+    m_quadProgram->bind();
+
+    // a_pos (location = 0)
+    m_quadProgram->enableAttributeArray(0);
+    m_quadProgram->setAttributeBuffer(0, GL_FLOAT, offsetof(Vertex, x), 2, sizeof(Vertex));
+    // a_uv (location = 1)
+    m_quadProgram->enableAttributeArray(1);
+    m_quadProgram->setAttributeBuffer(1, GL_FLOAT, offsetof(Vertex, u), 2, sizeof(Vertex));
+
+    m_quadProgram->release();
+    m_quadVao.release();
+    m_quadVbo.release();
+
+    m_quadPipelineReady = true;
+  }
+
   ImageViewer::ImageViewer() : m_textureId{0}
   {
     // std::ranges::fill(m_fbos, std::pair{nullptr, 0});
@@ -242,9 +375,7 @@ namespace AtlasImageViewer
 
     auto glImage = image.convertToFormat(QImage::Format_RGBA8888).mirrored();
 
-    // Your cell images have black backgrounds, so do a simple near-black key.
-    // Tune threshold/feather if you see dark cell pixels getting cut out.
-    ApplyBlackBackgroundAlpha(glImage, /*threshold=*/12, /*feather=*/24);
+    // Keep the original pixels; black-background removal is done in the overlay shader now.
 
     m_logger.Log(AtlasLogger::LogLevel::Info, "Converted image to OpenGL format with size: {}x{}", glImage.width(), glImage.height());
 
@@ -527,6 +658,18 @@ namespace AtlasImageViewer
         m_logger.Log(AtlasLogger::LogLevel::Info, "Slider Updated requested");
         this->OnSliderUpdated(static_cast<double>(value) / 100.0);
         break;
+      case AtlasCommon::AtlasImageViewerState::LuminanceThresholdUpdated:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Luminance Threshold Update requested");
+        this->SetOverlayLuminanceThreshold(static_cast<double>(value));
+        break;
+      case AtlasCommon::AtlasImageViewerState::LuminanceFeatherUpdated:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Luminance Feather Update requested");
+        this->SetOverlayLuminanceFeather(static_cast<double>(value));
+        break;
+      case AtlasCommon::AtlasImageViewerState::BrightnessUpdated:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Brightness Update requested");
+        this->SetOverlayBrightness(static_cast<double>(value) / 100.0);
+        break;
       default:
         break;
     }
@@ -535,6 +678,10 @@ namespace AtlasImageViewer
   auto ImageViewer::initializeGL() -> void
   {
     initializeOpenGLFunctions();
+
+    // Shader pipeline uses the window context
+    this->makeCurrent();
+    EnsureQuadPipeline();
     m_offscreensurface = std::make_unique<QOffscreenSurface>();
     m_offscreensurface->setFormat(this->context()->format());
     m_offscreensurface->create();
@@ -565,9 +712,12 @@ namespace AtlasImageViewer
 
   auto ImageViewer::paintGL() -> void
   {
+    EnsureQuadPipeline();
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_TEXTURE_2D);
-    glDisable(GL_BLEND);
+
+    if(!m_quadPipelineReady)
+      return;
 
     // Before drawing FBOs
     auto baseScaleX = 1.0f;
@@ -597,78 +747,62 @@ namespace AtlasImageViewer
     computeAspectFit(baseFbo, baseScaleX, baseScaleY);
     computeAspectFit(overlayFbo, overlayScaleX, overlayScaleY);
 
-    // Render a textured quad
-    auto rotate = [=](float x, float y, float& outX, float& outY) {
-      float cosA = std::cos(m_rotationRadians);
-      float sinA = std::sin(m_rotationRadians);
-      outX = cosA * x - sinA * y;
-      outY = sinA * x + cosA * y;
-    };
+    m_quadProgram->bind();
+    m_quadVao.bind();
 
-    float x0 = -overlayScaleX, y0 = -overlayScaleY;
-    float x1 =  overlayScaleX, y1 = -overlayScaleY;
-    float x2 =  overlayScaleX, y2 =  overlayScaleY;
-    float x3 = -overlayScaleX, y3 =  overlayScaleY;
+    // Common uniforms
+    m_quadProgram->setUniformValue("u_tex", 0);
 
-    float rx0, ry0, rx1, ry1, rx2, ry2, rx3, ry3;
-    rotate(x0, y0, rx0, ry0);
-    rotate(x1, y1, rx1, ry1);
-    rotate(x2, y2, rx2, ry2);
-    rotate(x3, y3, rx3, ry3);
+    // Draw base (no luma key, fully opaque, no blend)
+    if(baseFbo)
+    {
+      glDisable(GL_BLEND);
 
+      QMatrix4x4 mvp;
+      // Preserve previous "move" direction (old code used texcoord offsets).
+      mvp.translate(static_cast<float>(-xPos), static_cast<float>(-yPos), 0.0f);
+      mvp.scale(static_cast<float>(scale_size), static_cast<float>(scale_size), 1.0f);
+      mvp.scale(baseScaleX, baseScaleY, 1.0f);
 
-    // Draw Base FBO
-    /*
-    if(!m_fbos.empty() && m_fbos[0].first && m_fbos[0].first->isValid()) {
-      glPushMatrix();
-      glBindTexture(GL_TEXTURE_2D, m_fbos[0].first->texture());
-      glColor4f(1.0, 1.0, 1.0,1.0);
-      glScalef(scale_size, scale_size, 1.0f);
-      glBegin(GL_QUADS);
-      glTexCoord2f(0.0f + xPos, 0.0f + yPos); glVertex2f(-scaleX, -scaleY);
-      glTexCoord2f(1.0f + xPos, 0.0f + yPos); glVertex2f(scaleX, -scaleY);
-      glTexCoord2f(1.0f + xPos, 1.0f + yPos); glVertex2f(scaleX, scaleY);
-      glTexCoord2f(0.0f + xPos, 1.0f + yPos); glVertex2f(-scaleX, scaleY);
-      glEnd();
-      glPopMatrix();
-    }
-    */
+      m_quadProgram->setUniformValue("u_mvp", mvp);
+      m_quadProgram->setUniformValue("u_color", QVector4D{1.0f, 1.0f, 1.0f, 1.0f});
+      m_quadProgram->setUniformValue("u_brightness", 1.0f);
+      m_quadProgram->setUniformValue("u_useLumaKey", false);
+      m_quadProgram->setUniformValue("u_lumaThreshold255", 0.0f);
+      m_quadProgram->setUniformValue("u_lumaFeather255", 0.0f);
 
-    if(baseFbo) {
-      glPushMatrix();
+      glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, baseFbo->texture());
-      glColor4f(1.0, 1.0, 1.0, 1.0);
-      glScalef(scale_size, scale_size, 1.0f);
-      glBegin(GL_QUADS);
-      glTexCoord2f(0.0f + xPos, 0.0f + yPos); glVertex2f(-baseScaleX, -baseScaleY);
-      glTexCoord2f(1.0f + xPos, 0.0f + yPos); glVertex2f(baseScaleX, -baseScaleY);
-      glTexCoord2f(1.0f + xPos, 1.0f + yPos); glVertex2f(baseScaleX, baseScaleY);
-      glTexCoord2f(0.0f + xPos, 1.0f + yPos); glVertex2f(-baseScaleX, baseScaleY);
-      glEnd();
-      glPopMatrix();
+      glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
-    // Draw Overlay fbo
-    if (overlayFbo)
+    // Draw overlay (alpha blend + luminance key)
+    if(overlayFbo)
     {
       glEnable(GL_BLEND);
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-      glPushMatrix();
+      QMatrix4x4 mvp;
+      mvp.translate(static_cast<float>(-overlay_xPos), static_cast<float>(-overlay_yPos), 0.0f);
+      mvp.rotate(static_cast<float>(m_rotationRadians * 180.0 / std::numbers::pi), 0.0f, 0.0f, 1.0f);
+      mvp.scale(static_cast<float>(overlay_scale_size), static_cast<float>(overlay_scale_size), 1.0f);
+      mvp.scale(overlayScaleX, overlayScaleY, 1.0f);
+
+      m_quadProgram->setUniformValue("u_mvp", mvp);
+      m_quadProgram->setUniformValue("u_color", QVector4D{m_overlayTint.x(), m_overlayTint.y(), m_overlayTint.z(), static_cast<float>(m_opacity)});
+      m_quadProgram->setUniformValue("u_brightness", static_cast<float>(m_overlayBrightness));
+      m_quadProgram->setUniformValue("u_useLumaKey", true);
+      m_quadProgram->setUniformValue("u_lumaThreshold255", static_cast<float>(m_overlayLuminanceThreshold));
+      m_quadProgram->setUniformValue("u_lumaFeather255", static_cast<float>(m_overlayLuminanceFeather));
+
+      glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, overlayFbo->texture());
-      glScalef(overlay_scale_size, overlay_scale_size, 1.0f);
-      glColor4f(1.0, 1.0, 1.0, m_opacity);
-      glBegin(GL_QUADS);
-      glTexCoord2f(0.0f + overlay_xPos, 0.0f + overlay_yPos); glVertex2f(rx0, ry0);
-      glTexCoord2f(1.0f + overlay_xPos, 0.0f + overlay_yPos); glVertex2f(rx1, ry1);
-      glTexCoord2f(1.0f + overlay_xPos, 1.0f + overlay_yPos); glVertex2f(rx2, ry2);
-      glTexCoord2f(0.0f + overlay_xPos, 1.0f + overlay_yPos); glVertex2f(rx3, ry3);
-      glEnd();
-      glPopMatrix();
+      glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
+    m_quadVao.release();
+    m_quadProgram->release();
   }
 
   auto ImageViewer::RotateImage(std::string&& imagePath) -> void {

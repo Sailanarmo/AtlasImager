@@ -3,7 +3,7 @@
 #include "AtlasLogger/atlaslogger.hpp"
 #include "AtlasMessenger/atlasmessenger.hpp"
 #include "AtlasImageViewer/atlasimageviewer.hpp"
-#include "opacitySlider.hpp"
+#include "atlasslider.hpp"
 
 #include <ranges>
 #include <algorithm>
@@ -145,17 +145,37 @@ namespace AtlasGUI
     
   auto AtlasControlWidgetLayout::BuildRenderingOptionsWidget() -> void
   {
-    // TODO: Flesh out the rendering options widget
     m_renderingOptionsWidget = new QWidget{};
     auto layout = new QVBoxLayout{m_renderingOptionsWidget};
     auto label = new QLabel("Rendering Options\n");
     layout->addWidget(label);
+
     // Create slider
     auto label2 = new QLabel("Opacity: 1.0");
     layout->addWidget(label2);
-    OpacitySlider* slider = new OpacitySlider(Qt::Horizontal, 0, 100);
+    AtlasSlider* slider = new AtlasSlider(Qt::Horizontal, 0, 100);
     slider->setValue(100);
     layout->addWidget(slider);
+
+    auto luminanceThresholdLabel = new QLabel("Luminance Threshold: 0 (0.000)");
+    layout->addWidget(luminanceThresholdLabel);
+    // Luminance in shader is 0..1, but texels are 0..255-ish in 8-bit images.
+    // Using 0..255 here is more intuitive; viewer normalizes in shader.
+    AtlasSlider* luminanceSlider = new AtlasSlider(Qt::Horizontal, 0, 255);
+    luminanceSlider->setValue(13);
+    layout->addWidget(luminanceSlider);
+
+    auto luminanceFeatherLabel = new QLabel("Luminance Feather: 0 (0.000)");
+    layout->addWidget(luminanceFeatherLabel);
+    AtlasSlider* featherSlider = new AtlasSlider(Qt::Horizontal, 0, 255);
+    featherSlider->setValue(5);
+    layout->addWidget(featherSlider);
+
+    auto brightnessLabel = new QLabel("Brightness:");
+    layout->addWidget(brightnessLabel);
+    AtlasSlider* brightnessSlider = new AtlasSlider(Qt::Horizontal, 0, 200);
+    brightnessSlider->setValue(100);
+    layout->addWidget(brightnessSlider);
 
     connect(slider, &QSlider::valueChanged, this, [label2](int value){
         m_logger.Log(AtlasLogger::LogLevel::Info, "Slider adjusted in GUI. New value: {}", value);
@@ -164,6 +184,33 @@ namespace AtlasGUI
         auto messenger = &AtlasMessenger::Messenger::Instance();
         messenger->UpdateState(AtlasCommon::AtlasImageViewerState::SliderUpdated, AtlasCommon::AtlasClasses::AtlasImageViewer, value);
     });
+
+    connect(luminanceSlider, &QSlider::valueChanged, this, [this, luminanceThresholdLabel](int value){
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Luminance Slider adjusted in GUI. New value: {}", value);
+      const double normalized = static_cast<double>(value) / 255.0;
+      luminanceThresholdLabel->setText(QString("Luminance Threshold: %1 (%2)")
+        .arg(value)
+        .arg(normalized, 0, 'f', 3));
+      auto messenger = &AtlasMessenger::Messenger::Instance();
+      messenger->UpdateState(AtlasCommon::AtlasImageViewerState::LuminanceThresholdUpdated, AtlasCommon::AtlasClasses::AtlasImageViewer, value);
+    });
+
+    connect(featherSlider, &QSlider::valueChanged, this, [this, luminanceFeatherLabel](int value){
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Feather Slider adjusted in GUI. New value: {}", value);
+      const double normalized = static_cast<double>(value) / 255.0;
+      luminanceFeatherLabel->setText(QString("Luminance Feather: %1 (%2)")
+        .arg(value)
+        .arg(normalized, 0, 'f', 3));
+      auto messenger = &AtlasMessenger::Messenger::Instance();
+      messenger->UpdateState(AtlasCommon::AtlasImageViewerState::LuminanceFeatherUpdated, AtlasCommon::AtlasClasses::AtlasImageViewer, value);
+    });
+
+    connect(brightnessSlider, &QSlider::valueChanged, this, [this](int value){
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Brightness Slider adjusted in GUI. New value: {}", value);
+        auto messenger = &AtlasMessenger::Messenger::Instance();
+        messenger->UpdateState(AtlasCommon::AtlasImageViewerState::BrightnessUpdated, AtlasCommon::AtlasClasses::AtlasImageViewer, value);
+    });
+
     auto rotateButton = new QPushButton("Rotate Image");
     layout->addWidget(rotateButton);
     QObject::connect(rotateButton, &QPushButton::clicked, []() {

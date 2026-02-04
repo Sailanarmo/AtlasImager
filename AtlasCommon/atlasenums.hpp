@@ -47,6 +47,9 @@ namespace AtlasCommon
     NextImage,
     PreviousImage,
     SliderUpdated,
+    LuminanceThresholdUpdated,
+    LuminanceFeatherUpdated,
+    BrightnessUpdated,
     RotateImage
   };
 

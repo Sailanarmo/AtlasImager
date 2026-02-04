@@ -12,6 +12,11 @@
 #include <QOpenGLContext>
 #include <QOffscreenSurface>
 #include <QOpenGLFramebufferObject>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLBuffer>
+#include <QOpenGLVertexArrayObject>
+
+#include <QVector3D>
 
 class QImage;
 
@@ -60,6 +65,13 @@ namespace AtlasImageViewer
       auto ScaleOverlayDown() -> void;
       auto SaveImage() -> void;
 
+      // Shader/UI driven params (stubs for UI wiring)
+      // These are UI-friendly 0..255 inputs; shader normalizes to 0..1.
+      auto SetOverlayLuminanceThreshold(double threshold255) -> void;
+      auto SetOverlayLuminanceFeather(double feather255) -> void;
+      auto SetOverlayBrightness(double brightness) -> void;
+      auto SetOverlayTint(const QVector3D& rgb01) -> void;
+
     protected:
       auto initializeGL() -> void override;
       auto resizeGL(int w, int h) -> void override;
@@ -95,6 +107,19 @@ namespace AtlasImageViewer
       double scale_size{1.0};
       double overlay_scale_size{1.0};
 
+      // Shader pipeline for final screen draw (base + overlay)
+      std::unique_ptr<QOpenGLShaderProgram> m_quadProgram{nullptr};
+      QOpenGLBuffer m_quadVbo{QOpenGLBuffer::VertexBuffer};
+      QOpenGLVertexArrayObject m_quadVao;
+      bool m_quadPipelineReady{false};
+
+      // Overlay shader params
+      // Stored in 0..255 units to match UI; normalized in shader.
+      double m_overlayLuminanceThreshold{13.0};
+      double m_overlayLuminanceFeather{5.0};
+      double m_overlayBrightness{1.0};
+      QVector3D m_overlayTint{1.0f, 1.0f, 1.0f};
+
       auto CleanUp() -> void;
       auto AddImage(const std::string_view imagePath) -> void;
       auto AddImageWithWeight(const std::string_view imagePath, const double weight) -> void;
@@ -108,6 +133,8 @@ namespace AtlasImageViewer
       //auto AddFBOToArray(std::unique_ptr<QOpenGLFramebufferObject>&& fbo, const double weight) -> void;
 
       auto AddFBOToVector(std::unique_ptr<QOpenGLFramebufferObject>&& fbo) -> void;
+
+      auto EnsureQuadPipeline() -> void;
       
   };
 }

@@ -7,7 +7,7 @@ add_library(AtlasGUI STATIC
   atlasmainwindow.cpp
   atlasprogresspopup_layout.cpp
   atlasprogresspopupwidget.cpp
-  opacitySlider.cpp
+  atlasslider.cpp
 )
 
 target_include_directories(
