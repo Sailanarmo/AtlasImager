@@ -1,5 +1,6 @@
 #include "model.hpp"
 #include "AtlasMessenger/atlasmessenger.hpp"
+#include "AtlasLogger/atlaslogger.hpp"
 
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
@@ -12,13 +13,48 @@
 
 #include <print>
 
+#include <expected>
+
 namespace AtlasModel
 {
   const std::unordered_map<AtlasCommon::AtlasDataSet, std::string> Model::m_dataSetPaths =
   {
-    {AtlasCommon::AtlasDataSet::LGN, "./Dataset/LGN"},
-    {AtlasCommon::AtlasDataSet::PAG, "./Dataset/PAG"}
+    {AtlasCommon::AtlasDataSet::LGN, "/Dataset/LGN"},
+    {AtlasCommon::AtlasDataSet::PAG, "/Dataset/PAG"}
   };
+
+  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/Model.log", "AtlasModel::Model"};
+
+  enum class LoadDataSetResult
+  {
+    Success,
+    PathNotFound,
+    NoImagesFound
+  };
+
+  auto GetImages(const std::filesystem::path& datasetPath) -> std::expected<std::vector<AtlasImage::Image>, LoadDataSetResult>
+  {
+    auto images = std::vector<AtlasImage::Image>{};
+
+    if(!std::filesystem::exists(datasetPath))
+    {
+      // Should not happen if paths are correct
+      m_logger.Log(AtlasLogger::LogLevel::Error, "Dataset path not found: {}", datasetPath.string());
+      return std::unexpected(LoadDataSetResult::PathNotFound);
+    }
+
+    for(const auto& entry : std::filesystem::directory_iterator{datasetPath})
+    {
+      images.emplace_back(AtlasImage::Image(entry.path().string()));
+    }
+
+    if(images.empty())
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Warning, "No images found in dataset path: {}", datasetPath.string());
+      return std::unexpected(LoadDataSetResult::NoImagesFound);
+    }
+    return images;
+  }
 
   Model::Model()
   {
@@ -102,16 +138,25 @@ namespace AtlasModel
     if(m_images.size() > 0)
       m_images.clear();
 
-    const std::filesystem::path dataSetPath{std::filesystem::current_path()/=m_dataSetPaths.at(dataSet)};
-    std::ranges::for_each(std::filesystem::directory_iterator{dataSetPath}, [&,this](const auto& entry)
-    {
-      m_images.emplace_back(AtlasImage::Image(entry.path().string()));
-    });
+    const auto currentPath = std::filesystem::current_path().string();
+    const auto modelPath = m_dataSetPaths.at(dataSet);
+
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Loading dataset from path: {}", currentPath + modelPath);
+
+    const auto dataSetPath = std::filesystem::path{currentPath + modelPath};
+
+    m_images = GetImages(dataSetPath).value_or(std::vector<AtlasImage::Image>{});
 
     if(m_images.empty())
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Error, "No images found in dataset at path: {}", dataSetPath.string());
       AtlasMessenger::Messenger::Instance().SendMessage("No images found in dataset", AtlasCommon::AtlasClasses::AtlasImageViewer);
+    }
     else
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Successfully loaded {} images from dataset", m_images.size());
       AtlasMessenger::Messenger::Instance().SendMessage("Images loaded successfully", AtlasCommon::AtlasClasses::AtlasImageViewer); 
+    }
   }
 
   auto Model::HandleMessage(const char* message) -> void
