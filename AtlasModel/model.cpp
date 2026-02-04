@@ -15,6 +15,8 @@
 
 #include <expected>
 
+#include <QCoreApplication>
+
 namespace AtlasModel
 {
   const std::unordered_map<AtlasCommon::AtlasDataSet, std::string> Model::m_dataSetPaths =
@@ -42,10 +44,25 @@ namespace AtlasModel
       m_logger.Log(AtlasLogger::LogLevel::Error, "Dataset path not found: {}", datasetPath.string());
       return std::unexpected(LoadDataSetResult::PathNotFound);
     }
+    else
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Loading images from dataset path: {}", datasetPath.string());
+      auto start = std::filesystem::directory_iterator{datasetPath};
+      auto end = std::filesystem::directory_iterator{};
 
-    for(const auto& entry : std::filesystem::directory_iterator{datasetPath})
+      const auto count = std::distance(start, end);
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Found {} images in dataset: {}", count, datasetPath.string());
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::SetMaximumProgressBarValue, AtlasCommon::AtlasClasses::AtlasImageViewer, count);
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DisplayPopup, AtlasCommon::AtlasClasses::AtlasImageViewer);
+      
+      // Give the GUI event loop a chance to display the popup before we start the blocking image load
+      QCoreApplication::processEvents();
+    }
+
+    for(const auto& [index, entry] : std::views::enumerate(std::filesystem::directory_iterator{datasetPath}) )
     {
       images.emplace_back(AtlasImage::Image(entry.path().string()));
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::UpdateProgressBarValue, AtlasCommon::AtlasClasses::AtlasImageViewer, index + 1);
     }
 
     if(images.empty())
@@ -146,17 +163,19 @@ namespace AtlasModel
 
     const auto dataSetPath = std::filesystem::path{currentPath + modelPath};
 
+    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::ConstructPopup, AtlasCommon::AtlasClasses::AtlasImageViewer, dataSet);
+
     m_images = GetImages(dataSetPath).value_or(std::vector<AtlasImage::Image>{});
 
     if(m_images.empty())
     {
       m_logger.Log(AtlasLogger::LogLevel::Error, "No images found in dataset at path: {}", dataSetPath.string());
-      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DestroyPopup, AtlasCommon::AtlasClasses::AtlasImageViewer, dataSet); 
     }
     else
     {
       m_logger.Log(AtlasLogger::LogLevel::Info, "Successfully loaded {} images from dataset", m_images.size());
-      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer); 
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DestroyPopup, AtlasCommon::AtlasClasses::AtlasImageViewer, dataSet); 
     }
   }
 

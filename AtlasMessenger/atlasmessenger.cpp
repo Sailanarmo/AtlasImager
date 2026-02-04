@@ -58,4 +58,42 @@ namespace AtlasMessenger
         break;
     }
   }
+
+  auto Messenger::UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID, const int value) -> void
+  {
+    // Keep it simple!! 
+    switch(classID)
+    {
+      case AtlasCommon::AtlasClasses::Idle:
+        // Do nothing
+        break;
+      case AtlasCommon::AtlasClasses::AtlasModel:
+        // No int handling for model yet
+        break;
+      case AtlasCommon::AtlasClasses::AtlasImageViewer:
+        m_imageViewer->HandleStateUpdate(std::get<AtlasCommon::AtlasImageViewerState>(state), value);
+        break;
+      default:
+        break;
+    }
+  }
+
+  auto Messenger::UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID, const AtlasCommon::AtlasDataSet dataSet) -> void
+  {
+    // Keep it simple!! 
+    switch(classID)
+    {
+      case AtlasCommon::AtlasClasses::Idle:
+        // Do nothing
+        break;
+      case AtlasCommon::AtlasClasses::AtlasModel:
+        // No viewer state handling for model yet
+        break;
+      case AtlasCommon::AtlasClasses::AtlasImageViewer:
+        m_imageViewer->HandleStateUpdate(std::get<AtlasCommon::AtlasImageViewerState>(state), dataSet);
+        break;
+      default:
+        break;
+    }
+  }
 }

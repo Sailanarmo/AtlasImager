@@ -247,6 +247,10 @@ namespace AtlasImageViewer
       case AtlasCommon::AtlasImageViewerState::Idle:
         // Do nothing
         return;
+      case AtlasCommon::AtlasImageViewerState::DisplayPopup:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Displaying loading popup");
+        emit this->DisplayLoadingModelPopupSignal();
+        break;
       case AtlasCommon::AtlasImageViewerState::AddImage:
         m_logger.Log(AtlasLogger::LogLevel::Info, "Adding an image");
         this->ProcessAddImage(imageInformation);
@@ -270,6 +274,40 @@ namespace AtlasImageViewer
       case AtlasCommon::AtlasImageViewerState::RotateImage:
         m_logger.Log(AtlasLogger::LogLevel::Info, "Rotate Image requested");
         this->RotateImage(std::string{imageInformation});
+        break;
+      default:
+        break;
+    }
+  }
+
+  auto ImageViewer::HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const int value) -> void
+  {
+    switch(state)
+    {
+      case AtlasCommon::AtlasImageViewerState::SetMaximumProgressBarValue:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Set Maximum Progress Bar Value requested: {}", value);
+        emit SetMaximumProgressBarValueSignal(value);
+        break;
+      case AtlasCommon::AtlasImageViewerState::UpdateProgressBarValue:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Update Progress Bar Value requested: {}", value);
+        emit UpdateProgressBarValueSignal(value);
+        break;
+      default:
+        break;
+    }
+  }
+
+  auto ImageViewer::HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const AtlasCommon::AtlasDataSet dataSet) -> void
+  {
+    switch(state)
+    {
+      case AtlasCommon::AtlasImageViewerState::ConstructPopup:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Constructing Popup for {}", AtlasCommon::DataSetToString(dataSet));
+        emit CreateLoadingModelPopupSignal(dataSet);
+        break;
+      case AtlasCommon::AtlasImageViewerState::DestroyPopup:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Closing Popup for {}", AtlasCommon::DataSetToString(dataSet));
+        emit DestroyLoadingModelPopupSignal();
         break;
       default:
         break;
@@ -558,6 +596,5 @@ namespace AtlasImageViewer
           QOpenGLWindow::keyPressEvent(event);
       }
   }
-
 
 }

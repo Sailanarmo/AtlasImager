@@ -32,6 +32,11 @@ namespace AtlasCommon
   enum class AtlasImageViewerState : std::uint8_t
   {
     Idle = 0,
+    ConstructPopup,
+    SetMaximumProgressBarValue,
+    UpdateProgressBarValue,
+    DisplayPopup,
+    DestroyPopup,
     AddImage,
     LoadImage,
     NextImage,
@@ -52,6 +57,19 @@ namespace AtlasCommon
     {"LGN", AtlasDataSet::LGN},
     {"PAG", AtlasDataSet::PAG}
   };
+
+  static auto DataSetToString(const AtlasDataSet dataSet) -> std::string
+  {
+    switch(dataSet)
+    {
+      case AtlasDataSet::LGN:
+        return "LGN";
+      case AtlasDataSet::PAG:
+        return "PAG";
+      default:
+        return "Unknown";
+    }
+  }
 
   using AtlasState = std::variant<AtlasCommon::AtlasModelState, AtlasCommon::AtlasImageViewerState>;
   // One Global State Variable

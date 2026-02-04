@@ -9,4 +9,8 @@ target_include_directories(Model PRIVATE
 
 target_link_libraries(Model Atlas::Image)
 
+if (MSVC)
+  target_compile_options(Model PUBLIC "/Zc:__cplusplus")
+endif()
+
 add_library(Atlas::Model ALIAS Model)

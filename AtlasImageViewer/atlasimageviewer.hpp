@@ -42,6 +42,8 @@ namespace AtlasImageViewer
       auto OnPrevButtonPressed() -> void;
       auto OnSliderUpdated(double value) -> void;
       auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view imageInformation = "") -> void;
+      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const int value) -> void;
+      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const AtlasCommon::AtlasDataSet dataSet) -> void;
       auto RotateImage(std::string&& imagePath) -> void;
       auto ResetImage() -> void;
       auto MoveImageLeft() -> void;
@@ -63,6 +65,13 @@ namespace AtlasImageViewer
       auto resizeGL(int w, int h) -> void override;
       auto paintGL() -> void override;
       auto keyPressEvent(QKeyEvent* event) -> void override;
+    
+    signals:
+      auto CreateLoadingModelPopupSignal(const AtlasCommon::AtlasDataSet dataSet) -> void;
+      auto DisplayLoadingModelPopupSignal() -> void;
+      auto DestroyLoadingModelPopupSignal() -> void;
+      auto SetMaximumProgressBarValueSignal(const int max) -> void;
+      auto UpdateProgressBarValueSignal(const int value) -> void;
     
     private:
       // Framebuffer objects for rendering, takes the 3 best matched images and 
