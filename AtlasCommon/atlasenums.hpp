@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <cstdint>
 #include <variant>
 #include <unordered_map>
@@ -15,8 +16,8 @@ namespace AtlasCommon
   enum class AtlasModelState : std::uint8_t
   {
     Idle = 0,
-    LoadingLGNModel,
-    LoadingPAGModel,
+    LoadLGNModel,
+    LoadPAGModel,
     ModelPAGLoaded,
     FindingBestFits,
     SendingBestFits,
@@ -46,10 +47,10 @@ namespace AtlasCommon
     AtlasImageViewer
   };
 
-  static const std::unordered_map<AtlasDataSet, const char*> AtlasDataSetNames
+  static const std::unordered_map<std::string, AtlasDataSet> AtlasDataSetNames
   {
-    {AtlasDataSet::LGN, "LGN"},
-    {AtlasDataSet::PAG, "PAG"}
+    {"LGN", AtlasDataSet::LGN},
+    {"PAG", AtlasDataSet::PAG}
   };
 
   using AtlasState = std::variant<AtlasCommon::AtlasModelState, AtlasCommon::AtlasImageViewerState>;

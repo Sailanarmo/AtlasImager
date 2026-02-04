@@ -30,10 +30,31 @@ namespace AtlasMessenger
         // Do nothing
         break;
       case AtlasCommon::AtlasClasses::AtlasModel:
-        m_model->HandleStateUpdate(state);
+        m_model->HandleStateUpdate(std::get<AtlasCommon::AtlasModelState>(state));
         break;
       case AtlasCommon::AtlasClasses::AtlasImageViewer:
-        m_imageViewer->HandleStateUpdate(state);
+        m_imageViewer->HandleStateUpdate(std::get<AtlasCommon::AtlasImageViewerState>(state));
+        break;
+      default:
+        break;
+    }
+  }
+
+  auto Messenger::UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID, const std::string_view imageInformation) -> void
+  {
+    // Keep it simple!! 
+    switch(classID)
+    {
+      case AtlasCommon::AtlasClasses::Idle:
+        // Do nothing
+        break;
+      case AtlasCommon::AtlasClasses::AtlasModel:
+        m_model->HandleStateUpdate(std::get<AtlasCommon::AtlasModelState>(state), imageInformation);
+        break;
+      case AtlasCommon::AtlasClasses::AtlasImageViewer:
+        m_imageViewer->HandleStateUpdate(std::get<AtlasCommon::AtlasImageViewerState>(state), imageInformation);
+        break;
+      default:
         break;
     }
   }

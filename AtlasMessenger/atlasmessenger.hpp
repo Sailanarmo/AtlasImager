@@ -32,6 +32,7 @@ namespace AtlasMessenger
       static auto Instance() -> Messenger&;
 
       auto UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID) -> void;
+      auto UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID, const std::string_view imageInformation) -> void;
       auto SetImageViewer(AtlasImageViewer::ImageViewer* imageViewer) -> void;
       auto SetModel(AtlasModel::Model* model) -> void;
 

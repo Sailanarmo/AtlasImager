@@ -99,6 +99,7 @@ namespace AtlasModel
     double num = 0;
     for(auto &image : m_images) {
       auto name = image.GetImageName();
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Best fit image name: {}", name);
       bestFits.push_back(std::string(name) + ":" + std::to_string(num));
       num += 1;
     }
@@ -165,7 +166,7 @@ namespace AtlasModel
     std::sort(bestFits.begin(), bestFits.end());
     std::ranges::for_each(bestFits, [](const auto& image)
     {
-      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::AddImage, AtlasCommon::AtlasClasses::AtlasImageViewer);
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::AddImage, AtlasCommon::AtlasClasses::AtlasImageViewer, image);
     });
 
     AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);
@@ -178,11 +179,11 @@ namespace AtlasModel
       case AtlasCommon::AtlasModelState::Idle:
         // Do nothing
         return;
-      case AtlasCommon::AtlasModelState::LoadingLGNModel:
+      case AtlasCommon::AtlasModelState::LoadLGNModel:
         m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Loading LGN Model Data...");
         this->LoadDataSet(AtlasCommon::AtlasDataSet::LGN);
         break;
-      case AtlasCommon::AtlasModelState::LoadingPAGModel:
+      case AtlasCommon::AtlasModelState::LoadPAGModel:
         m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Loading PAG Model Data...");
         this->LoadDataSet(AtlasCommon::AtlasDataSet::PAG);
         break;
@@ -199,7 +200,6 @@ namespace AtlasModel
   {
     m_logger.Log(AtlasLogger::LogLevel::Info, "Model initialized.");
     AtlasCommon::CurrentAtlasState = AtlasCommon::AtlasModelState::Idle;
-    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::CurrentAtlasState, AtlasCommon::AtlasClasses::AtlasImageViewer);
   }
 
 }

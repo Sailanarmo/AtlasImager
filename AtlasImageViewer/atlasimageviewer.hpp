@@ -1,5 +1,7 @@
 #pragma once
 
+#include "AtlasCommon/atlasenums.hpp"
+
 #include <memory>
 #include <array>
 #include <string_view>
@@ -13,14 +15,14 @@
 class QImage;
 
 /*
-* The Atlas Image Viewer is the renderer itself. This will rander an image by binding that
-* image data to a QOpenGLFramebufferObject. That then can get added to a QOpenGLTexsture
+* The Atlas Image Viewer is the renderer itself. This will render an image by binding that
+* image data to a QOpenGLFramebufferObject. That then can get added to a QOpenGLTexture
 * which will display the image in the renderer. 
 * 
 * TODO: Add a slot to this class that will swap out the images stored in m_fbos when the 
 *       best 3 matches are found.
 *
-*       Using blending, a technique in Graphics Progamming, overlay the best matching atlas
+*       Using blending, a technique in Graphics Programming, overlay the best matching atlas
 *       model image over the XRay image. Or, find a way to overlay the best matching atlas
 *       model image over the XRay image using a 3D Volume (like a cube) where the front of
 *       the cube (The Z-Axis [Towards the Monitor]) is the atlas model image and the back of

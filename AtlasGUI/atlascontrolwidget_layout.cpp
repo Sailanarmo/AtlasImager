@@ -1,6 +1,6 @@
 #include "atlascontrolwidget_layout.hpp"
 
-#include "AtlasCommon/atlasenums.hpp"
+#include "AtlasLogger/atlaslogger.hpp"
 #include "AtlasMessenger/atlasmessenger.hpp"
 #include "AtlasImageViewer/atlasimageviewer.hpp"
 #include "opacitySlider.hpp"
@@ -19,6 +19,8 @@
 
 namespace AtlasGUI
 {
+  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/AtlasControlWidgetLayout.log", "AtlasGUI::AtlasControlWidgetLayout"};
+
   AtlasControlWidgetLayout::AtlasControlWidgetLayout(QWidget* parent) : QVBoxLayout{parent}
   {
     Initialize();
@@ -93,14 +95,14 @@ namespace AtlasGUI
 
       findBestMatchButton->setEnabled(true); 
       auto args = std::string{"LoadImage," + path};
-      messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
+      messenger->UpdateState(AtlasCommon::AtlasImageViewerState::LoadImage, AtlasCommon::AtlasClasses::AtlasImageViewer, path);
     });
 
     QObject::connect(findBestMatchButton, &QPushButton::clicked, [this, lineEdit, messenger](){
       auto imgToProcess = lineEdit->text().toStdString();
       auto args = std::string{"GetBestFits," + imgToProcess};
-      std::println("Sending Model to get Best Fits!");
-      messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasModel);
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Requesting best fits for image: {}", imgToProcess);
+      messenger->UpdateState(AtlasCommon::AtlasModelState::FindingBestFits, AtlasCommon::AtlasClasses::AtlasModel, imgToProcess);
 
       if (nextButton && prevButton) {
           nextButton->setEnabled(true);
@@ -126,26 +128,26 @@ namespace AtlasGUI
     layout->addWidget(slider);
 
     connect(slider, &QSlider::valueChanged, this, [label2](int value){
-        std::println("Slider adjusted! Sending to back end");
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Slider adjusted in GUI. New value: {}", value);
         double opacity_value = value / 100.0;
         label2->setText(QString("Opacity: %1").arg(opacity_value));
-        auto messenger = &AtlasMessenger::Messenger::Instance();
-        auto args = "Slider," + std::to_string(opacity_value);
-        messenger->SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
+        //auto messenger = &AtlasMessenger::Messenger::Instance();
+        //auto args = "Slider," + std::to_string(opacity_value);
+        //messenger->UpdateState(AtlasCommon::AtlasImageViewerState::SliderUpdated, AtlasCommon::AtlasClasses::AtlasImageViewer, args);
     });
     auto rotateButton = new QPushButton("Rotate Image");
     layout->addWidget(rotateButton);
     QObject::connect(rotateButton, &QPushButton::clicked, []() {
-        std::println("Rotate button clicked! Sending to back end");
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Rotate button clicked in GUI.");
         auto messenger = &AtlasMessenger::Messenger::Instance();
-        messenger->SendMessage("RotateImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
+        messenger->UpdateState(AtlasCommon::AtlasImageViewerState::RotateImage, AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
     auto resetButton = new QPushButton("Reset Rotation");
     layout->addWidget(resetButton);
     QObject::connect(resetButton, &QPushButton::clicked, []() {
-      std::println("Reset button clicked! Sending to back end");
-      auto messenger = &AtlasMessenger::Messenger::Instance();
-      messenger->SendMessage("ResetImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Reset Rotation button clicked in GUI.");
+      //auto messenger = &AtlasMessenger::Messenger::Instance();
+      //messenger->SendMessage("ResetImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
     m_renderingOptionsWidget->setEnabled(false); // Disabled until Images are loaded.
     this->addWidget(m_renderingOptionsWidget);
@@ -171,14 +173,13 @@ namespace AtlasGUI
 
     // Next Button and Prev Button Handling
     QObject::connect(nextButton, &QPushButton::clicked, [lineEdit, messenger](){
-      std::println("Next button clicked! Sending to back end");
-      auto argsNext = std::string("NextButton,Test");
-      messenger->SendMessage(argsNext.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Next Image button clicked in GUI.");
+      messenger->UpdateState(AtlasCommon::AtlasImageViewerState::NextImage, AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
+
     QObject::connect(prevButton, &QPushButton::clicked, [lineEdit, messenger]() {
-       std::println("Prev button clicked! Sending to back end");
-       auto argsPrev = std::string("PrevButton,Test");
-       messenger->SendMessage(argsPrev.c_str(), AtlasCommon::AtlasClasses::AtlasImageViewer);
+       m_logger.Log(AtlasLogger::LogLevel::Info, "Previous Image button clicked in GUI.");
+       messenger->UpdateState(AtlasCommon::AtlasImageViewerState::PreviousImage, AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
 
   }
@@ -192,9 +193,9 @@ namespace AtlasGUI
       layout->addWidget(label);
       layout->addWidget(saveButton);
       QObject::connect(saveButton, &QPushButton::clicked, []() {
-          std::println("Save button clicked! Sending to back end");
-          auto messenger = &AtlasMessenger::Messenger::Instance();
-          messenger->SendMessage("SaveImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Save Image button clicked in GUI.");
+        //auto messenger = &AtlasMessenger::Messenger::Instance();
+        //messenger->SendMessage("SaveImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
       });
       this->addWidget(m_saveImageWidget);
   }
@@ -202,10 +203,26 @@ namespace AtlasGUI
   auto AtlasControlWidgetLayout::LoadModel() -> void
   {
     auto comboBox = m_ratModelWidget->findChild<QComboBox*>();
-    auto dataSet = comboBox->currentIndex();
-    auto args = std::string{"LoadDataSet," + std::to_string(dataSet)};
-    AtlasMessenger::Messenger::Instance().SendMessage(args.c_str(), AtlasCommon::AtlasClasses::AtlasModel);
-    m_isModelLoaded = true;
+    const auto dataSet = comboBox->currentText().toStdString();
+    const auto dataSetEnum = AtlasCommon::AtlasDataSetNames.at(dataSet);
+
+    auto messenger = &AtlasMessenger::Messenger::Instance();
+
+    if(dataSetEnum == AtlasCommon::AtlasDataSet::LGN)
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Loading LGN Rat Brain Model");
+      messenger->UpdateState(AtlasCommon::AtlasModelState::LoadLGNModel, AtlasCommon::AtlasClasses::AtlasModel);
+      m_isModelLoaded = true;
+    }
+    else if(dataSetEnum == AtlasCommon::AtlasDataSet::PAG)
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Loading PAG Rat Brain Model");
+      messenger->UpdateState(AtlasCommon::AtlasModelState::LoadPAGModel, AtlasCommon::AtlasClasses::AtlasModel);
+      m_isModelLoaded = true;
+    }
+    else
+      m_logger.Log(AtlasLogger::LogLevel::Error, "Unknown Rat Brain Model selected: {}", dataSet);
+    
   }
 
 

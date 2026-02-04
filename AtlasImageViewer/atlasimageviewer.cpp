@@ -35,18 +35,20 @@ namespace AtlasImageViewer
 
   auto ParseImageInformation(const std::string_view imageInformation) -> std::expected<std::pair<std::string_view, double>, StringParseResult>
   {
-    auto colonPos = imageInformation.find(':');
+    auto colonPos = imageInformation.rfind(':');
     if(colonPos != std::string::npos)
     {
       auto imagePath = imageInformation.substr(0, colonPos);
       auto weight = double{0.0};
       if(std::from_chars(imageInformation.data() + colonPos + 1, imageInformation.data() + imageInformation.size(), weight).ec != std::errc{})
       {
+        m_logger.Log(AtlasLogger::LogLevel::Error, "Failed to convert weight from string to double: {}", imageInformation.substr(colonPos + 1));
         return std::unexpected(StringParseResult::ConversionFailed);
       }
 
       return std::make_pair(imagePath, weight);
     }
+    m_logger.Log(AtlasLogger::LogLevel::Error, "Delimiter ':' not found in image information string: {}", imageInformation);
     return std::unexpected(StringParseResult::DelimiterNotFound); 
   }
 
@@ -70,20 +72,26 @@ namespace AtlasImageViewer
 
   auto ImageViewer::LoadImage(const std::string_view imagePath) -> void
   {
-    std::println("ImageViewer::LoadImage: imagePath: {}", imagePath);
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Loading image from path: {}", imagePath);
     this->makeCurrent();
 
     if(m_texture)
       CleanUp();
 
-    auto image = QImage{imagePath.data()}; 
+    auto image = QImage{QString::fromStdString(std::string{imagePath})}; 
+
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image loaded with size: {}x{}", image.width(), image.height());
 
     auto glImage = image.convertToFormat(QImage::Format_RGBA8888).mirrored();
+
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Converted image to OpenGL format with size: {}x{}", glImage.width(), glImage.height());
 
     auto gl_funcs = this->context()->functions();
     auto texture = CreateTexture(glImage, gl_funcs);
 
     m_fbo = CreateFrameBuffer(image.size());
+
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Created FBO with size: {}x{}", m_fbo->size().width(), m_fbo->size().height());
 
     DrawToFBO(m_fbo.get(), gl_funcs, texture);
 
@@ -118,8 +126,9 @@ namespace AtlasImageViewer
 
   auto ImageViewer::CreateImage(const std::string_view imagePath) -> QImage
   {
-    auto image = QImage(imagePath.data());
+    auto image = QImage{QString::fromStdString(std::string{imagePath})};
     auto glImage = image.convertToFormat(QImage::Format_RGBA8888).mirrored();
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Created QImage from path: {} with size: {}x{}", imagePath, glImage.width(), glImage.height());
     return glImage;
   }
 
@@ -158,7 +167,7 @@ namespace AtlasImageViewer
   auto ImageViewer::AddFBOToArray(std::unique_ptr<QOpenGLFramebufferObject>&& fbo, const double weight) -> void
   {
       m_fbos.emplace_back(std::move(fbo), weight);
-      std::println("Successfully added FBO to array. Total now: {}", m_fbos.size());
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Successfully added FBO to array. Total now: {}", m_fbos.size());
 //    if(m_fbos[0].first == nullptr)
 //    {
 //      m_fbos[0].first = std::move(fbo);
@@ -187,16 +196,17 @@ namespace AtlasImageViewer
   {
     const auto curImagePath = std::move(imagePath);
 
-    std::println("Creating QImage");
     auto image = CreateImage(curImagePath);
-    std::println("Creating a Context");
+
     auto tempContext = std::move(CreateNewContext());
 
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Created new OpenGL context for image addition.");
     tempContext->makeCurrent(m_offscreensurface.get());
 
     auto gl_funcs = tempContext->functions();
-    std::println("Creating a new texture");
     auto textureId = CreateTexture(image, gl_funcs);
+
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Created texture for image addition with ID: {}", textureId);
 
     auto fbo = CreateFrameBuffer(image.size());
 
@@ -206,17 +216,26 @@ namespace AtlasImageViewer
       gl_funcs->glDeleteTextures(1, &textureId);
     }
 
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Created FBO for image addition with size: {}x{}", fbo->size().width(), fbo->size().height());
+
     DrawToFBO(fbo.get(), gl_funcs, textureId);
 
-    std::println("Adding FBO to Array.");
     AddFBOToArray(std::move(fbo), weight);
 
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Adding FBO to Array. Total now: {}", m_fbos.size());
   }
 
   auto ImageViewer::ProcessAddImage(const std::string_view imageInformation) -> void
   {
     // Parse imageInformation to get image path and weight
     auto [imagePath, weight] = ParseImageInformation(imageInformation).value_or(std::pair{"", 0.0});
+
+    if(imagePath.empty() && weight == 0.0)
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Error, "Failed to parse image information: {}", imageInformation);
+      return;
+    }
+
     this->AddImage(imagePath, weight);
     //TODO: Blend and render the images.
   }
@@ -232,48 +251,28 @@ namespace AtlasImageViewer
         m_logger.Log(AtlasLogger::LogLevel::Info, "Adding an image");
         this->ProcessAddImage(imageInformation);
         break;
+      case AtlasCommon::AtlasImageViewerState::LoadImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Loading an image");
+        this->LoadImage(imageInformation);
+        break;
+      case AtlasCommon::AtlasImageViewerState::NextImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Next Image requested");
+        this->OnNextButtonPressed();
+        break;
+      case AtlasCommon::AtlasImageViewerState::PreviousImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Previous Image requested");
+        this->OnPrevButtonPressed();
+        break;
+      case AtlasCommon::AtlasImageViewerState::SliderUpdated:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Slider Updated requested");
+        //this->OnSliderUpdated(std::stod(imageInformation));
+        break;
+      case AtlasCommon::AtlasImageViewerState::RotateImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Rotate Image requested");
+        this->RotateImage(std::string{imageInformation});
+        break;
       default:
         break;
-    }
-
-    auto commaPos = msg.find(',');
-    if (commaPos != std::string::npos)
-    {
-      auto command = msg.substr(0, commaPos);
-      auto argument = msg.substr(commaPos + 1);
-
-      if (command == "RenderImage")
-      {
-        //RenderImage(argument);
-      }
-      else if (command == "LoadImage")
-      {
-        std::println("ImageViewer::HandleMessage: LoadImage");
-        std::println("ImageViewer::HandleMessage: argument: {}", argument);
-        LoadImage(argument);
-      }
-      else if (command == "AddImage")
-      {
-      }
-      else if (command == "NextButton") {
-          // std::println("Next Button was Pressed! We are in the backend.");
-          OnNextButtonPressed();
-      }
-      else if (command == "PrevButton") {
-          OnPrevButtonPressed();
-      }
-      else if (command == "Slider") {
-          OnSliderUpdated(std::stod(argument));
-      }
-      else if (command == "RotateImage") {
-          RotateImage(std::move(argument));
-      }
-      else if (command == "ResetImage") {
-          ResetImage();
-      }
-      else if (command == "SaveImage") {
-          SaveImage();
-      }
     }
   }
 
@@ -383,35 +382,40 @@ namespace AtlasImageViewer
     }
   }
 
-  auto ImageViewer::OnNextButtonPressed() -> void {
-      std::println("Next Button was Pressed! We are in the backend.");
-      // std::swap(m_fbos[0], m_fbos[1]);
-      std::ranges::rotate(m_fbos, m_fbos.begin() + 1);
-      this->update();
+  auto ImageViewer::OnNextButtonPressed() -> void 
+  {
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Swapping to next image.");
+    std::swap(m_fbo, m_fbos[0].first);
+
+    // Performs a left rotation on the vector
+    std::ranges::rotate(m_fbos, m_fbos.begin() + 1);
+    this->update();
   }
 
-  auto ImageViewer::OnPrevButtonPressed() -> void {
-      std::println("Prev Button was Pressed! We are in the backend.");
-      // std::swap(m_fbos[0], m_fbos[2]);
-      std::ranges::rotate(m_fbos, m_fbos.end() - 1);
-      this->update();
+  auto ImageViewer::OnPrevButtonPressed() -> void 
+  {
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Swapping to previous image.");
+    std::swap(m_fbo, m_fbos[m_fbos.size() - 1].first);
+
+    // Performs a right rotation on the vector
+    std::ranges::rotate(m_fbos, m_fbos.end() - 1);
+    this->update();
   }
 
   auto ImageViewer::OnSliderUpdated(double value) -> void {
-      std::println("Slider updated! We are in the backend.");
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Slider updated! New value: {}", value);
       m_opacity = value;
-      std::println("Slider value: {}", value);
       this->update();
   }
 
   auto ImageViewer::ResetImage() -> void {
-      std::println("Image reset! We are in the backend.");
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Image reset! We are in the backend.");
       m_rotationRadians = 0.0;
       this->update();
   }
 
   auto ImageViewer::SaveImage() -> void {
-      std::println("Image saved! We are in the backend.");
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Image saved! We are in the backend.");
 
       // Get what is displayed or something
       QImage image = this->grabFramebuffer();
@@ -428,74 +432,74 @@ namespace AtlasImageViewer
   }
 
   auto ImageViewer::MoveOverlayLeft() -> void {
-    std::println("Image moved to the left! We are in the backend.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image moved to the left! We are in the backend.");
     overlay_xPos += 0.01f;
     this->update();
   }
 
   auto ImageViewer::MoveOverlayRight() -> void {
-    std::println("Image moved to the right! We are in the backend.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image moved to the right! We are in the backend.");
     overlay_xPos -= 0.01f;
     this->update();
   }
 
   auto ImageViewer::MoveOverlayUp() -> void {
-    std::println("Image moved up! We are in the backend.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image moved up! We are in the backend.");
     overlay_yPos -= 0.01f;
     this->update();
   }
 
   auto ImageViewer::MoveOverlayDown() -> void {
-    std::println("Image moved down! We are in the backend.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image moved down! We are in the backend.");
     overlay_yPos += 0.01f;
     this->update();
   }
 
   auto ImageViewer::MoveImageDown() -> void {
-    std::println("Image moved down! We are in the backend.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image moved down! We are in the backend.");
     yPos += 0.01f;
     this->update();
   }
 
   auto ImageViewer::MoveImageUp() -> void {
-    std::println("Image moved up! We are in the backend.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image moved up! We are in the backend.");
     yPos -= 0.01f;
     this->update();
   }
 
   auto ImageViewer::MoveImageLeft() -> void {
-    std::println("Image moved left! We are in the backend.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image moved left! We are in the backend.");
     xPos += 0.01f;
     this->update();
   }
 
   auto ImageViewer::MoveImageRight() -> void {
-    std::println("Image moved right! We are in the backend.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image moved right! We are in the backend.");
     xPos -= 0.01f;
     this->update();
   }
 
 
   auto ImageViewer::ScaleImageUp() -> void {
-    std::println("Image scaled up! We are in the backend.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image scaled up! We are in the backend.");
     scale_size += 0.2f;
     this->update();
   }
 
   auto ImageViewer::ScaleImageDown() -> void {
-    std::println("Image scaled down! We are in the backend.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image scaled down! We are in the backend.");
     scale_size -= 0.2f;
     this->update();
   }
 
   auto ImageViewer::ScaleOverlayUp() -> void {
-    std::println("Overlay scaled up! We are in the backend.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Overlay scaled up! We are in the backend.");
     overlay_scale_size += 0.2f;
     this->update();
   }
 
   auto ImageViewer::ScaleOverlayDown() -> void {
-    std::println("Overlay scaled down! We are in the backend.");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Overlay scaled down! We are in the backend.");
     overlay_scale_size -= 0.2f;
     this->update();
   }
