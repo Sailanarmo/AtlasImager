@@ -15,6 +15,8 @@
 #include <QKeyEvent>
 #include <QFileDialog>
 
+#include <QColor>
+
 namespace AtlasImageViewer
 {
 
@@ -50,6 +52,155 @@ namespace AtlasImageViewer
     }
     m_logger.Log(AtlasLogger::LogLevel::Error, "Delimiter ':' not found in image information string: {}", imageInformation);
     return std::unexpected(StringParseResult::DelimiterNotFound); 
+  }
+
+  namespace
+  {
+    struct Rgba
+    {
+      std::uint8_t r{};
+      std::uint8_t g{};
+      std::uint8_t b{};
+      std::uint8_t a{};
+    };
+
+    auto GetPixelRgba8888(const QImage& image, const int x, const int y) -> Rgba
+    {
+      const auto* scan = image.constScanLine(y);
+      const auto* px = scan + (x * 4);
+      return Rgba{
+        static_cast<std::uint8_t>(px[0]),
+        static_cast<std::uint8_t>(px[1]),
+        static_cast<std::uint8_t>(px[2]),
+        static_cast<std::uint8_t>(px[3])
+      };
+    }
+
+    auto SetPixelAlphaRgba8888(QImage& image, const int x, const int y, const std::uint8_t alpha) -> void
+    {
+      auto* scan = image.scanLine(y);
+      auto* px = scan + (x * 4);
+      px[3] = alpha;
+    }
+
+    [[maybe_unused]] auto EstimateCornerKeyColorRgba8888(const QImage& image) -> QColor
+    {
+      // Average a small block from each corner; robust against small artifacts.
+      const int w = image.width();
+      const int h = image.height();
+      if(w <= 0 || h <= 0)
+        return QColor{0, 0, 0};
+
+      const int block = std::min({5, w, h});
+      std::uint64_t sumR = 0, sumG = 0, sumB = 0;
+      std::uint64_t count = 0;
+
+      auto accumulateBlock = [&](const int startX, const int startY)
+      {
+        for(int y = startY; y < startY + block; ++y)
+        {
+          for(int x = startX; x < startX + block; ++x)
+          {
+            const auto px = GetPixelRgba8888(image, x, y);
+            sumR += px.r;
+            sumG += px.g;
+            sumB += px.b;
+            ++count;
+          }
+        }
+      };
+
+      accumulateBlock(0, 0);
+      accumulateBlock(w - block, 0);
+      accumulateBlock(0, h - block);
+      accumulateBlock(w - block, h - block);
+
+      if(count == 0)
+        return QColor{0, 0, 0};
+
+      return QColor{
+        static_cast<int>(sumR / count),
+        static_cast<int>(sumG / count),
+        static_cast<int>(sumB / count)
+      };
+    }
+
+    auto ApplyChromaKeyAlpha(QImage& image, const QColor keyColor, const int tolerance, const int feather) -> void
+    {
+      if(image.isNull())
+        return;
+
+      if(image.format() != QImage::Format_RGBA8888)
+        image = image.convertToFormat(QImage::Format_RGBA8888);
+
+      const int w = image.width();
+      const int h = image.height();
+
+      const int tol = std::max(0, tolerance);
+      const int fea = std::max(0, feather);
+
+      for(int y = 0; y < h; ++y)
+      {
+        for(int x = 0; x < w; ++x)
+        {
+          const auto px = GetPixelRgba8888(image, x, y);
+          const int dr = std::abs(static_cast<int>(px.r) - keyColor.red());
+          const int dg = std::abs(static_cast<int>(px.g) - keyColor.green());
+          const int db = std::abs(static_cast<int>(px.b) - keyColor.blue());
+          const int dist = dr + dg + db;
+
+          std::uint8_t outA = 255;
+          if(dist <= tol)
+          {
+            outA = 0;
+          }
+          else if(fea > 0 && dist < (tol + fea))
+          {
+            const float t = static_cast<float>(dist - tol) / static_cast<float>(fea);
+            outA = static_cast<std::uint8_t>(std::clamp(t, 0.0f, 1.0f) * 255.0f);
+          }
+
+          SetPixelAlphaRgba8888(image, x, y, outA);
+        }
+      }
+    }
+
+    auto ApplyBlackBackgroundAlpha(QImage& image, const int threshold, const int feather) -> void
+    {
+      if(image.isNull())
+        return;
+
+      if(image.format() != QImage::Format_RGBA8888)
+        image = image.convertToFormat(QImage::Format_RGBA8888);
+
+      const int w = image.width();
+      const int h = image.height();
+
+      const int thr = std::max(0, threshold);
+      const int fea = std::max(0, feather);
+
+      for(int y = 0; y < h; ++y)
+      {
+        for(int x = 0; x < w; ++x)
+        {
+          const auto px = GetPixelRgba8888(image, x, y);
+          const int maxChannel = std::max({static_cast<int>(px.r), static_cast<int>(px.g), static_cast<int>(px.b)});
+
+          std::uint8_t outA = 255;
+          if(maxChannel <= thr)
+          {
+            outA = 0;
+          }
+          else if(fea > 0 && maxChannel < (thr + fea))
+          {
+            const float t = static_cast<float>(maxChannel - thr) / static_cast<float>(fea);
+            outA = static_cast<std::uint8_t>(std::clamp(t, 0.0f, 1.0f) * 255.0f);
+          }
+
+          SetPixelAlphaRgba8888(image, x, y, outA);
+        }
+      }
+    }
   }
 
   ImageViewer::ImageViewer() : m_textureId{0}
@@ -91,6 +242,10 @@ namespace AtlasImageViewer
 
     auto glImage = image.convertToFormat(QImage::Format_RGBA8888).mirrored();
 
+    // Your cell images have black backgrounds, so do a simple near-black key.
+    // Tune threshold/feather if you see dark cell pixels getting cut out.
+    ApplyBlackBackgroundAlpha(glImage, /*threshold=*/12, /*feather=*/24);
+
     m_logger.Log(AtlasLogger::LogLevel::Info, "Converted image to OpenGL format with size: {}x{}", glImage.width(), glImage.height());
 
     auto gl_funcs = this->context()->functions();
@@ -112,6 +267,8 @@ namespace AtlasImageViewer
     fbo->bind();
     glViewport(0, 0, fbo->size().width(), fbo->size().height());
 
+    // Preserve transparency in the FBO so blending works as expected.
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glEnable(GL_TEXTURE_2D);
