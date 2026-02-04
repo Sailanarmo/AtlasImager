@@ -161,9 +161,8 @@ namespace AtlasGUI
         m_logger.Log(AtlasLogger::LogLevel::Info, "Slider adjusted in GUI. New value: {}", value);
         double opacity_value = value / 100.0;
         label2->setText(QString("Opacity: %1").arg(opacity_value));
-        //auto messenger = &AtlasMessenger::Messenger::Instance();
-        //auto args = "Slider," + std::to_string(opacity_value);
-        //messenger->UpdateState(AtlasCommon::AtlasImageViewerState::SliderUpdated, AtlasCommon::AtlasClasses::AtlasImageViewer, args);
+        auto messenger = &AtlasMessenger::Messenger::Instance();
+        messenger->UpdateState(AtlasCommon::AtlasImageViewerState::SliderUpdated, AtlasCommon::AtlasClasses::AtlasImageViewer, value);
     });
     auto rotateButton = new QPushButton("Rotate Image");
     layout->addWidget(rotateButton);

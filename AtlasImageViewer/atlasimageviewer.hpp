@@ -86,7 +86,7 @@ namespace AtlasImageViewer
       GLuint m_textureId;
       std::unique_ptr<QOpenGLTexture> overlay_texture{nullptr};
       GLuint overlay_textureId;
-      double m_opacity{1.0};
+      double m_opacity{0.75};
       double m_rotationRadians{0.0};
       double overlay_xPos{0.0};
       double overlay_yPos{0.0};

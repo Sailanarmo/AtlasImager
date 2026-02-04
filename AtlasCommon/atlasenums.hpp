@@ -43,6 +43,7 @@ namespace AtlasCommon
     AddImageWithWeight,
     LoadAllModelImages,
     LoadImage,
+    UpdateRenderer,
     NextImage,
     PreviousImage,
     SliderUpdated,

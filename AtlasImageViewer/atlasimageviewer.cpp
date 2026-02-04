@@ -316,6 +316,10 @@ namespace AtlasImageViewer
         m_logger.Log(AtlasLogger::LogLevel::Info, "Adding an image with weight");
         this->ProcessAddImageWithWeight(imageInformation);
         break;
+      case AtlasCommon::AtlasImageViewerState::UpdateRenderer:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Updating renderer");
+        this->update();
+        break;
       case AtlasCommon::AtlasImageViewerState::LoadImage:
         m_logger.Log(AtlasLogger::LogLevel::Info, "Loading an image");
         this->RenderMainImage(imageInformation);
@@ -327,10 +331,6 @@ namespace AtlasImageViewer
       case AtlasCommon::AtlasImageViewerState::PreviousImage:
         m_logger.Log(AtlasLogger::LogLevel::Info, "Previous Image requested");
         this->OnPrevButtonPressed();
-        break;
-      case AtlasCommon::AtlasImageViewerState::SliderUpdated:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Slider Updated requested");
-        //this->OnSliderUpdated(std::stod(imageInformation));
         break;
       case AtlasCommon::AtlasImageViewerState::RotateImage:
         m_logger.Log(AtlasLogger::LogLevel::Info, "Rotate Image requested");
@@ -365,6 +365,10 @@ namespace AtlasImageViewer
       case AtlasCommon::AtlasImageViewerState::UpdateProgressBarValue:
         m_logger.Log(AtlasLogger::LogLevel::Info, "Update Progress Bar Value requested: {}", value);
         emit UpdateProgressBarValueSignal(value);
+        break;
+      case AtlasCommon::AtlasImageViewerState::SliderUpdated:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Slider Updated requested");
+        this->OnSliderUpdated(static_cast<double>(value) / 100.0);
         break;
       default:
         break;
@@ -405,21 +409,36 @@ namespace AtlasImageViewer
   auto ImageViewer::paintGL() -> void
   {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_BLEND);
     glEnable(GL_TEXTURE_2D);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_BLEND);
 
     // Before drawing FBOs
-    auto scaleX = 1.0f;
-    auto scaleY = 1.0f;
-    if(m_fbo && m_fbo->isValid()) {
-        auto windowAspectRatio = static_cast<float>(this->width()) / static_cast<float>(this->height());
-        auto imageAspectRatio = static_cast<float>(m_fbo->size().width()) / static_cast<float>(m_fbo->size().height());
-        if(imageAspectRatio > windowAspectRatio)
-            scaleY = windowAspectRatio / imageAspectRatio;
-        else
-            scaleX = imageAspectRatio / windowAspectRatio;
-    }
+    auto baseScaleX = 1.0f;
+    auto baseScaleY = 1.0f;
+    auto overlayScaleX = 1.0f;
+    auto overlayScaleY = 1.0f;
+    const auto* baseFbo = (!m_fbos.empty() && m_fbos[0] && m_fbos[0]->isValid()) ? m_fbos[0].get() : nullptr;
+    const auto* overlayFbo = (m_fbo && m_fbo->isValid()) ? m_fbo.get() : nullptr;
+
+    auto computeAspectFit = [&](const QOpenGLFramebufferObject* fbo, float& outScaleX, float& outScaleY)
+    {
+      if(!fbo)
+        return;
+
+      outScaleX = 1.0f;
+      outScaleY = 1.0f;
+
+      const auto windowAspectRatio = static_cast<float>(this->width()) / static_cast<float>(this->height());
+      const auto imageAspectRatio = static_cast<float>(fbo->size().width()) / static_cast<float>(fbo->size().height());
+      if(imageAspectRatio > windowAspectRatio)
+        outScaleY = windowAspectRatio / imageAspectRatio;
+      else
+        outScaleX = imageAspectRatio / windowAspectRatio;
+    };
+
+    // Base and overlay can have different sizes; preserve each aspect ratio.
+    computeAspectFit(baseFbo, baseScaleX, baseScaleY);
+    computeAspectFit(overlayFbo, overlayScaleX, overlayScaleY);
 
     // Render a textured quad
     auto rotate = [=](float x, float y, float& outX, float& outY) {
@@ -429,10 +448,10 @@ namespace AtlasImageViewer
       outY = sinA * x + cosA * y;
     };
 
-    float x0 = -scaleX, y0 = -scaleY;
-    float x1 =  scaleX, y1 = -scaleY;
-    float x2 =  scaleX, y2 =  scaleY;
-    float x3 = -scaleX, y3 =  scaleY;
+    float x0 = -overlayScaleX, y0 = -overlayScaleY;
+    float x1 =  overlayScaleX, y1 = -overlayScaleY;
+    float x2 =  overlayScaleX, y2 =  overlayScaleY;
+    float x3 = -overlayScaleX, y3 =  overlayScaleY;
 
     float rx0, ry0, rx1, ry1, rx2, ry2, rx3, ry3;
     rotate(x0, y0, rx0, ry0);
@@ -458,29 +477,29 @@ namespace AtlasImageViewer
     }
     */
 
-    if(!m_fbos.empty() && m_fbos[0] && m_fbos[0]->isValid()) {
+    if(baseFbo) {
       glPushMatrix();
-      glBindTexture(GL_TEXTURE_2D, m_fbos[0]->texture());
-      glColor4f(1.0, 1.0, 1.0,1.0);
+      glBindTexture(GL_TEXTURE_2D, baseFbo->texture());
+      glColor4f(1.0, 1.0, 1.0, 1.0);
       glScalef(scale_size, scale_size, 1.0f);
       glBegin(GL_QUADS);
-      glTexCoord2f(0.0f + xPos, 0.0f + yPos); glVertex2f(-scaleX, -scaleY);
-      glTexCoord2f(1.0f + xPos, 0.0f + yPos); glVertex2f(scaleX, -scaleY);
-      glTexCoord2f(1.0f + xPos, 1.0f + yPos); glVertex2f(scaleX, scaleY);
-      glTexCoord2f(0.0f + xPos, 1.0f + yPos); glVertex2f(-scaleX, scaleY);
+      glTexCoord2f(0.0f + xPos, 0.0f + yPos); glVertex2f(-baseScaleX, -baseScaleY);
+      glTexCoord2f(1.0f + xPos, 0.0f + yPos); glVertex2f(baseScaleX, -baseScaleY);
+      glTexCoord2f(1.0f + xPos, 1.0f + yPos); glVertex2f(baseScaleX, baseScaleY);
+      glTexCoord2f(0.0f + xPos, 1.0f + yPos); glVertex2f(-baseScaleX, baseScaleY);
       glEnd();
       glPopMatrix();
     }
 
     // Draw Overlay fbo
-    if (m_fbo && m_fbo->isValid())
+    if (overlayFbo)
     {
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
       glPushMatrix();
-      std::println("ImageViewer::paintGL: m_fbo is valid");
-      glBindTexture(GL_TEXTURE_2D, m_fbo->texture());
+      glBindTexture(GL_TEXTURE_2D, overlayFbo->texture());
       glScalef(overlay_scale_size, overlay_scale_size, 1.0f);
-      std::println("ImageViewer::paintGL: m_fbo textureId: {}", m_fbo->texture());
-      std::println("ImageViewer::paintGL: m_fbo size (WxH): {}x{}", m_fbo->size().width(), m_fbo->size().height());
       glColor4f(1.0, 1.0, 1.0, m_opacity);
       glBegin(GL_QUADS);
       glTexCoord2f(0.0f + overlay_xPos, 0.0f + overlay_yPos); glVertex2f(rx0, ry0);
@@ -488,10 +507,11 @@ namespace AtlasImageViewer
       glTexCoord2f(1.0f + overlay_xPos, 1.0f + overlay_yPos); glVertex2f(rx2, ry2);
       glTexCoord2f(0.0f + overlay_xPos, 1.0f + overlay_yPos); glVertex2f(rx3, ry3);
       glEnd();
-      glBindTexture(GL_TEXTURE_2D, 0);
-      glDisable(GL_TEXTURE_2D);
       glPopMatrix();
     }
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
   }
 
   auto ImageViewer::RotateImage(std::string&& imagePath) -> void {
@@ -513,22 +533,24 @@ namespace AtlasImageViewer
 
   auto ImageViewer::OnNextButtonPressed() -> void 
   {
-    m_logger.Log(AtlasLogger::LogLevel::Info, "Swapping to next image.");
-    //std::swap(m_fbo, m_fbos[0].first);
-    std::swap(m_fbo, m_fbos[0]);
+    if(m_fbos.size() < 2)
+      return;
 
-    // Performs a left rotation on the vector
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Selecting next base image.");
+
+    // Performs a left rotation on the vector; the base image is always m_fbos[0].
     std::ranges::rotate(m_fbos, m_fbos.begin() + 1);
     this->update();
   }
 
   auto ImageViewer::OnPrevButtonPressed() -> void 
   {
-    m_logger.Log(AtlasLogger::LogLevel::Info, "Swapping to previous image.");
-    //std::swap(m_fbo, m_fbos[m_fbos.size() - 1].first);
-    std::swap(m_fbo, m_fbos[m_fbos.size() - 1]);
+    if(m_fbos.size() < 2)
+      return;
 
-    // Performs a right rotation on the vector
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Selecting previous base image.");
+
+    // Performs a right rotation on the vector; the base image is always m_fbos[0].
     std::ranges::rotate(m_fbos, m_fbos.end() - 1);
     this->update();
   }

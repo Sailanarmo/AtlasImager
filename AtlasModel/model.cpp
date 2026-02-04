@@ -279,6 +279,8 @@ namespace AtlasModel
       case AtlasCommon::AtlasModelState::LoadAllModelImages:
         m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Loading All Model Images...");
         this->LoadAllDataSetImages(m_loadedDataSet);
+        AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::UpdateRenderer, AtlasCommon::AtlasClasses::AtlasImageViewer);
+        AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);
         break;
       case AtlasCommon::AtlasModelState::FindingBestFits:
         m_logger.Log(AtlasLogger::LogLevel::Info, "State Update: Finding Best Fits...");
