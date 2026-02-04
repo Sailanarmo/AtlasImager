@@ -27,10 +27,8 @@ namespace AtlasGUI
 
   auto AtlasMainWindow::CreateLoadingPopup(const QString& mainLoadingText, const QString& format) -> void
   {
-    m_loadingPopup = new AtlasProgressPopupWidget{mainLoadingText,format,this};
     m_logger.Log(AtlasLogger::LogLevel::Info, "Created loading popup with main text: {} and format: {}", mainLoadingText.toStdString(), format.toStdString());
-    //m_loadingPopup->setWindowModality(Qt::ApplicationModal);
-    //m_loadingPopup->setAttribute(Qt::WA_DeleteOnClose);
+    m_loadingPopup = new AtlasProgressPopupWidget{mainLoadingText,format,this};
   }
 
   auto AtlasMainWindow::DisplayLoadingPopup() -> void

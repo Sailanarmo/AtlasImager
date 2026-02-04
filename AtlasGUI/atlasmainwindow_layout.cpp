@@ -63,7 +63,6 @@ namespace AtlasGUI
     }
 
     auto mainLoadingText = QString::fromStdString("Loading " + datasetName + " Model...");
-    //auto format = QString::fromStdString("Loading " + datasetName + " Images: %p%");
     auto format = QString::fromStdString("%v of %m " + datasetName + " Images loaded %p%");
 
     m_logger.Log(AtlasLogger::LogLevel::Info, "Emitting signal to create loading popup with main text: '{}' and format: '{}'", mainLoadingText.toStdString(), format.toStdString());

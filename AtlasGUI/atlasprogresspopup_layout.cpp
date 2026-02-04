@@ -22,11 +22,16 @@ namespace AtlasGUI
     m_progressBar->setValue(0);
     this->addWidget(m_mainLoadingLabel);
     this->addWidget(m_progressBar);
+    this->setAlignment(Qt::AlignHCenter);
+
+    m_mainLoadingLabel->setFont(QFont{"Arial", 14, QFont::Bold});
+    m_progressBar->setFont(QFont{"Arial", 12});
   }
 
   auto AtlasProgressPopupLayout::SetMainLoadingText(const QString& text) -> void
   {
     m_mainLoadingLabel->setText(text);
+    m_mainLoadingLabel->setAlignment(Qt::AlignCenter);
   }
 
   auto AtlasProgressPopupLayout::SetMaxProgressBarValue(const int max) -> void

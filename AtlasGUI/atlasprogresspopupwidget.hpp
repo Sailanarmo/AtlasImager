@@ -15,8 +15,12 @@ namespace AtlasGUI
 
     public slots:
       auto UpdateProgressValue(int value) -> void;
+
+    protected:
+      auto paintEvent(QPaintEvent* event) -> void override;
     
     private:
       AtlasProgressPopupLayout* m_layout{nullptr};
+      QFrame* m_frameWidget{nullptr};
   };
 }
