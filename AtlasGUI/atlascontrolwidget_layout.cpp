@@ -3,7 +3,7 @@
 #include "AtlasLogger/atlaslogger.hpp"
 #include "AtlasMessenger/atlasmessenger.hpp"
 #include "AtlasImageViewer/atlasimageviewer.hpp"
-#include "opacitySlider.hpp"
+#include "atlasslider.hpp"
 
 #include <ranges>
 #include <algorithm>
@@ -150,34 +150,49 @@ namespace AtlasGUI
     auto layout = new QVBoxLayout{m_renderingOptionsWidget};
     auto label = new QLabel("Rendering Options\n");
     layout->addWidget(label);
-    // Create slider
-    auto label2 = new QLabel("Opacity: 1.0");
-    layout->addWidget(label2);
-    OpacitySlider* slider = new OpacitySlider(Qt::Horizontal, 0, 100);
-    slider->setValue(100);
-    layout->addWidget(slider);
 
-    connect(slider, &QSlider::valueChanged, this, [label2](int value){
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Slider adjusted in GUI. New value: {}", value);
-        double opacity_value = value / 100.0;
-        label2->setText(QString("Opacity: %1").arg(opacity_value));
-        auto messenger = &AtlasMessenger::Messenger::Instance();
-        messenger->UpdateState(AtlasCommon::AtlasImageViewerState::SliderUpdated, AtlasCommon::AtlasClasses::AtlasImageViewer, value);
+    // Create slider
+    auto opacityLabel = new QLabel("Opacity: ");
+    layout->addWidget(opacityLabel);
+    auto opacitySlider = new AtlasSlider(Qt::Horizontal, 0, 100);
+    opacitySlider->setValue(75);
+    layout->addWidget(opacitySlider);
+
+    auto rotationLabel = new QLabel("Rotation: ");
+    layout->addWidget(rotationLabel);
+    auto rotationSlider = new AtlasSlider(Qt::Horizontal, -180000, 180000);
+    rotationSlider->setValue(0);
+    layout->addWidget(rotationSlider);
+
+    auto scaleLabel = new QLabel("Scale: ");
+    layout->addWidget(scaleLabel);
+    auto scaleSlider = new AtlasSlider(Qt::Horizontal, 1, 300);
+    scaleSlider->setValue(100);
+    layout->addWidget(scaleSlider);
+
+    connect(opacitySlider, &QSlider::valueChanged, this, [opacityLabel](int value){
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Slider adjusted in GUI. New value: {}", value);
+      const double opacity_value = value / 100.0;
+      opacityLabel->setText(QString("Opacity: %1").arg(opacity_value));
+      auto messenger = &AtlasMessenger::Messenger::Instance();
+      messenger->UpdateState(AtlasCommon::AtlasImageViewerState::SliderUpdated, AtlasCommon::AtlasClasses::AtlasImageViewer, value);
     });
-    auto rotateButton = new QPushButton("Rotate Image");
-    layout->addWidget(rotateButton);
-    QObject::connect(rotateButton, &QPushButton::clicked, []() {
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Rotate button clicked in GUI.");
-        auto messenger = &AtlasMessenger::Messenger::Instance();
-        messenger->UpdateState(AtlasCommon::AtlasImageViewerState::RotateImage, AtlasCommon::AtlasClasses::AtlasImageViewer);
+
+    connect(rotationSlider, &QSlider::valueChanged, this, [rotationLabel](int value){
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Rotation slider adjusted in GUI. New value: {}", value);
+      rotationLabel->setText(QString("Rotation: %1°").arg(value / 1000.0));
+      auto messenger = &AtlasMessenger::Messenger::Instance();
+      messenger->UpdateState(AtlasCommon::AtlasImageViewerState::RotateImage, AtlasCommon::AtlasClasses::AtlasImageViewer, value);
     });
-    auto resetButton = new QPushButton("Reset Rotation");
-    layout->addWidget(resetButton);
-    QObject::connect(resetButton, &QPushButton::clicked, []() {
-      m_logger.Log(AtlasLogger::LogLevel::Info, "Reset Rotation button clicked in GUI.");
-      //auto messenger = &AtlasMessenger::Messenger::Instance();
-      //messenger->SendMessage("ResetImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
+
+    connect(scaleSlider, &QSlider::valueChanged, this, [scaleLabel](int value){
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Scale slider adjusted in GUI. New value: {}", value);
+      const double scale_value = value / 100.0;
+      scaleLabel->setText(QString("Scale: %1x").arg(scale_value));
+      auto messenger = &AtlasMessenger::Messenger::Instance();
+      messenger->UpdateState(AtlasCommon::AtlasImageViewerState::ScaleImage, AtlasCommon::AtlasClasses::AtlasImageViewer, value);
     });
+
     m_renderingOptionsWidget->setEnabled(false); // Disabled until Images are loaded.
     this->addWidget(m_renderingOptionsWidget);
   }
@@ -207,31 +222,32 @@ namespace AtlasGUI
     });
 
     QObject::connect(prevButton, &QPushButton::clicked, [lineEdit, messenger]() {
-       m_logger.Log(AtlasLogger::LogLevel::Info, "Previous Image button clicked in GUI.");
-       messenger->UpdateState(AtlasCommon::AtlasImageViewerState::PreviousImage, AtlasCommon::AtlasClasses::AtlasImageViewer);
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Previous Image button clicked in GUI.");
+      messenger->UpdateState(AtlasCommon::AtlasImageViewerState::PreviousImage, AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
 
   }
 
 
   auto AtlasControlWidgetLayout::BuildSaveImageWidget() -> void {
-      m_saveImageWidget = new QWidget{};
-      auto layout = new QVBoxLayout{m_saveImageWidget};
-      auto label = new QLabel{"Save Image"};
-      auto saveButton = new QPushButton{"Save Image"};
-      layout->addWidget(label);
-      layout->addWidget(saveButton);
-      QObject::connect(saveButton, &QPushButton::clicked, []() {
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Save Image button clicked in GUI.");
-        //auto messenger = &AtlasMessenger::Messenger::Instance();
-        //messenger->SendMessage("SaveImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
-      });
-      this->addWidget(m_saveImageWidget);
+    m_saveImageWidget = new QWidget{};
+    auto layout = new QVBoxLayout{m_saveImageWidget};
+    auto label = new QLabel{"Save Image"};
+    auto saveButton = new QPushButton{"Save Image"};
+    layout->addWidget(label);
+    layout->addWidget(saveButton);
+    QObject::connect(saveButton, &QPushButton::clicked, []() {
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Save Image button clicked in GUI.");
+      //auto messenger = &AtlasMessenger::Messenger::Instance();
+      //messenger->SendMessage("SaveImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
+    });
+    this->addWidget(m_saveImageWidget);
   }
 
   auto AtlasControlWidgetLayout::LoadModel() -> void
   {
     auto comboBox = m_ratModelWidget->findChild<QComboBox*>();
+    auto label = m_ratModelWidget->findChild<QLabel*>();
     const auto dataSet = comboBox->currentText().toStdString();
     const auto dataSetEnum = AtlasCommon::AtlasDataSetNames.at(dataSet);
 
@@ -252,6 +268,11 @@ namespace AtlasGUI
     else
       m_logger.Log(AtlasLogger::LogLevel::Error, "Unknown Rat Brain Model selected: {}", dataSet);
     
+    if(m_isModelLoaded)
+    {
+      label->setText(comboBox->currentText() + " Model Loaded");
+      label->setStyleSheet("QLabel { color : green; }");
+    }
   }
 
 }

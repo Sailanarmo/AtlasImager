@@ -10,6 +10,8 @@
 #include <expected>
 #include <charconv>
 #include <algorithm>
+#include <optional>
+#include <cmath>
 
 #include <QImage>
 #include <QKeyEvent>
@@ -56,6 +58,34 @@ namespace AtlasImageViewer
 
   namespace
   {
+    constexpr auto kPi = std::numbers::pi;
+
+    auto DegreesToRadians(const double degrees) -> double
+    {
+      return degrees * (kPi / 180.0);
+    }
+
+    auto NormalizeRadiansSigned(double radians) -> double
+    {
+      // Normalize to [-pi, pi]
+      radians = std::fmod(radians, 2.0 * kPi);
+      if(radians > kPi)
+        radians -= 2.0 * kPi;
+      else if(radians < -kPi)
+        radians += 2.0 * kPi;
+      return radians;
+    }
+
+    auto ParseDouble(std::string_view text) -> std::optional<double>
+    {
+      double value = 0.0;
+      const auto* begin = text.data();
+      const auto* end = text.data() + text.size();
+      if(std::from_chars(begin, end, value).ec == std::errc{})
+        return value;
+      return std::nullopt;
+    }
+
     struct Rgba
     {
       std::uint8_t r{};
@@ -450,87 +480,6 @@ namespace AtlasImageViewer
     this->AddImageWithWeight(imagePath, weight);
   }
 
-  auto ImageViewer::HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view imageInformation) -> void
-  {
-    switch(state)
-    {
-      case AtlasCommon::AtlasImageViewerState::Idle:
-        // Do nothing
-        return;
-      case AtlasCommon::AtlasImageViewerState::DisplayPopup:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Displaying loading popup");
-        emit this->DisplayLoadingModelPopupSignal();
-        break;
-      case AtlasCommon::AtlasImageViewerState::DestroyPopup:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Destroying loading popup");
-        emit this->DestroyLoadingModelPopupSignal();
-        break;
-      case AtlasCommon::AtlasImageViewerState::AddImage:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Adding an image");
-        this->ProcessAddImage(imageInformation);
-        break;
-      case AtlasCommon::AtlasImageViewerState::AddImageWithWeight:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Adding an image with weight");
-        this->ProcessAddImageWithWeight(imageInformation);
-        break;
-      case AtlasCommon::AtlasImageViewerState::UpdateRenderer:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Updating renderer");
-        this->update();
-        break;
-      case AtlasCommon::AtlasImageViewerState::LoadImage:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Loading an image");
-        this->RenderMainImage(imageInformation);
-        break;
-      case AtlasCommon::AtlasImageViewerState::NextImage:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Next Image requested");
-        this->OnNextButtonPressed();
-        break;
-      case AtlasCommon::AtlasImageViewerState::PreviousImage:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Previous Image requested");
-        this->OnPrevButtonPressed();
-        break;
-      case AtlasCommon::AtlasImageViewerState::RotateImage:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Rotate Image requested");
-        this->RotateImage(std::string{imageInformation});
-        break;
-      default:
-        break;
-    }
-  }
-
-  auto ImageViewer::HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view mainLabelText, const std::string_view progressBarTextformat) -> void
-  {
-    switch(state)
-    {
-      case AtlasCommon::AtlasImageViewerState::ConstructPopup:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Constructing Popup");
-        emit CreateLoadingModelPopupSignal(mainLabelText, progressBarTextformat);
-        break;
-      default:
-        break;
-    }
-  }
-
-  auto ImageViewer::HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const int value) -> void
-  {
-    switch(state)
-    {
-      case AtlasCommon::AtlasImageViewerState::SetMaximumProgressBarValue:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Set Maximum Progress Bar Value requested: {}", value);
-        emit SetMaximumProgressBarValueSignal(value);
-        break;
-      case AtlasCommon::AtlasImageViewerState::UpdateProgressBarValue:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Update Progress Bar Value requested: {}", value);
-        emit UpdateProgressBarValueSignal(value);
-        break;
-      case AtlasCommon::AtlasImageViewerState::SliderUpdated:
-        m_logger.Log(AtlasLogger::LogLevel::Info, "Slider Updated requested");
-        this->OnSliderUpdated(static_cast<double>(value) / 100.0);
-        break;
-      default:
-        break;
-    }
-  }
 
   auto ImageViewer::initializeGL() -> void
   {
@@ -569,13 +518,19 @@ namespace AtlasImageViewer
     glEnable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
 
+    // If the viewport isn't square, rotating in raw NDC space visually shears/stretches.
+    // Apply an aspect correction when rotating vertices so the quad rotates rigidly.
+    const float viewportAspect = (this->height() > 0)
+      ? static_cast<float>(this->width()) / static_cast<float>(this->height())
+      : 1.0f;
+
     // Before drawing FBOs
     auto baseScaleX = 1.0f;
     auto baseScaleY = 1.0f;
     auto overlayScaleX = 1.0f;
     auto overlayScaleY = 1.0f;
-    const auto* baseFbo = (!m_fbos.empty() && m_fbos[0] && m_fbos[0]->isValid()) ? m_fbos[0].get() : nullptr;
-    const auto* overlayFbo = (m_fbo && m_fbo->isValid()) ? m_fbo.get() : nullptr;
+    const auto* overlayFbo = (!m_fbos.empty() && m_fbos[0] && m_fbos[0]->isValid()) ? m_fbos[0].get() : nullptr;
+    const auto* baseFbo = (m_fbo && m_fbo->isValid()) ? m_fbo.get() : nullptr;
 
     auto computeAspectFit = [&](const QOpenGLFramebufferObject* fbo, float& outScaleX, float& outScaleY)
     {
@@ -598,11 +553,17 @@ namespace AtlasImageViewer
     computeAspectFit(overlayFbo, overlayScaleX, overlayScaleY);
 
     // Render a textured quad
-    auto rotate = [=](float x, float y, float& outX, float& outY) {
-      float cosA = std::cos(m_rotationRadians);
-      float sinA = std::sin(m_rotationRadians);
-      outX = cosA * x - sinA * y;
-      outY = sinA * x + cosA * y;
+    auto rotate = [&](float x, float y, float& outX, float& outY) {
+      const float cosA = std::cos(static_cast<float>(m_rotationRadians));
+      const float sinA = std::sin(static_cast<float>(m_rotationRadians));
+
+      // Scale X into a square-space, rotate, then un-scale back.
+      const float xSq = x * viewportAspect;
+      const float ySq = y;
+      const float xr = cosA * xSq - sinA * ySq;
+      const float yr = sinA * xSq + cosA * ySq;
+      outX = xr / viewportAspect;
+      outY = yr;
     };
 
     float x0 = -overlayScaleX, y0 = -overlayScaleY;
@@ -638,7 +599,7 @@ namespace AtlasImageViewer
       glPushMatrix();
       glBindTexture(GL_TEXTURE_2D, baseFbo->texture());
       glColor4f(1.0, 1.0, 1.0, 1.0);
-      glScalef(scale_size, scale_size, 1.0f);
+
       glBegin(GL_QUADS);
       glTexCoord2f(0.0f + xPos, 0.0f + yPos); glVertex2f(-baseScaleX, -baseScaleY);
       glTexCoord2f(1.0f + xPos, 0.0f + yPos); glVertex2f(baseScaleX, -baseScaleY);
@@ -658,6 +619,8 @@ namespace AtlasImageViewer
       glBindTexture(GL_TEXTURE_2D, overlayFbo->texture());
       glScalef(overlay_scale_size, overlay_scale_size, 1.0f);
       glColor4f(1.0, 1.0, 1.0, m_opacity);
+      glScalef(scale_size, scale_size, 1.0f);
+
       glBegin(GL_QUADS);
       glTexCoord2f(0.0f + overlay_xPos, 0.0f + overlay_yPos); glVertex2f(rx0, ry0);
       glTexCoord2f(1.0f + overlay_xPos, 0.0f + overlay_yPos); glVertex2f(rx1, ry1);
@@ -671,11 +634,19 @@ namespace AtlasImageViewer
     glDisable(GL_TEXTURE_2D);
   }
 
-  auto ImageViewer::RotateImage(std::string&& imagePath) -> void {
-      m_rotationRadians += 0.25;
-      if (m_rotationRadians > 2 * std::numbers::pi)
-        m_rotationRadians -= 2 * std::numbers::pi;
-      this->update();
+  auto ImageViewer::RotateImage(const double angleDegrees) -> void
+  {
+    // GUI slider provides degrees in [-180, 180]. Internally we store radians.
+    m_rotationRadians = NormalizeRadiansSigned(DegreesToRadians(angleDegrees));
+    this->update();
+  }
+
+  auto ImageViewer::ScaleImage(const int value) -> void
+  {
+    // GUI slider provides integer percent in [1, 300]. Map to [0.01, 3.0].
+    const int clamped = std::clamp(value, 1, 300);
+    scale_size = static_cast<double>(clamped) / 100.0;
+    this->update();
   }
 
   auto ImageViewer::CleanUp() -> void
@@ -867,6 +838,99 @@ namespace AtlasImageViewer
         default:
           QOpenGLWindow::keyPressEvent(event);
       }
+  }
+
+  auto ImageViewer::HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view imageInformation) -> void
+  {
+    switch(state)
+    {
+      case AtlasCommon::AtlasImageViewerState::Idle:
+        // Do nothing
+        return;
+      case AtlasCommon::AtlasImageViewerState::DisplayPopup:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Displaying loading popup");
+        emit this->DisplayLoadingModelPopupSignal();
+        break;
+      case AtlasCommon::AtlasImageViewerState::DestroyPopup:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Destroying loading popup");
+        emit this->DestroyLoadingModelPopupSignal();
+        break;
+      case AtlasCommon::AtlasImageViewerState::AddImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Adding an image");
+        this->ProcessAddImage(imageInformation);
+        break;
+      case AtlasCommon::AtlasImageViewerState::AddImageWithWeight:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Adding an image with weight");
+        this->ProcessAddImageWithWeight(imageInformation);
+        break;
+      case AtlasCommon::AtlasImageViewerState::UpdateRenderer:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Updating renderer");
+        this->update();
+        break;
+      case AtlasCommon::AtlasImageViewerState::LoadImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Loading an image");
+        this->RenderMainImage(imageInformation);
+        break;
+      case AtlasCommon::AtlasImageViewerState::NextImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Next Image requested");
+        this->OnNextButtonPressed();
+        break;
+      case AtlasCommon::AtlasImageViewerState::PreviousImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Previous Image requested");
+        this->OnPrevButtonPressed();
+        break;
+      case AtlasCommon::AtlasImageViewerState::RotateImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Rotate Image requested");
+        if(const auto deg = ParseDouble(imageInformation))
+          this->RotateImage(*deg);
+        else
+          m_logger.Log(AtlasLogger::LogLevel::Error, "Failed to parse rotation degrees from: {}", imageInformation);
+        break;
+      default:
+        break;
+    }
+  }
+
+  auto ImageViewer::HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view mainLabelText, const std::string_view progressBarTextformat) -> void
+  {
+    switch(state)
+    {
+      case AtlasCommon::AtlasImageViewerState::ConstructPopup:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Constructing Popup");
+        emit CreateLoadingModelPopupSignal(mainLabelText, progressBarTextformat);
+        break;
+      default:
+        break;
+    }
+  }
+
+  auto ImageViewer::HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const int value) -> void
+  {
+    switch(state)
+    {
+      case AtlasCommon::AtlasImageViewerState::SetMaximumProgressBarValue:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Set Maximum Progress Bar Value requested: {}", value);
+        emit SetMaximumProgressBarValueSignal(value);
+        break;
+      case AtlasCommon::AtlasImageViewerState::UpdateProgressBarValue:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Update Progress Bar Value requested: {}", value);
+        emit UpdateProgressBarValueSignal(value);
+        break;
+      case AtlasCommon::AtlasImageViewerState::SliderUpdated:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Slider Updated requested");
+        this->OnSliderUpdated(static_cast<double>(value) / 100.0);
+        break;
+      case AtlasCommon::AtlasImageViewerState::RotateImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Rotate Image requested");
+        this->RotateImage(static_cast<double>(value) / 1000.0);
+        break;
+      case AtlasCommon::AtlasImageViewerState::ScaleImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Scale Image requested");
+        this->ScaleImage(value);
+        break;
+      default:
+        break;
+    }
   }
 
 }

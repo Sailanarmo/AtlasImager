@@ -44,7 +44,6 @@ namespace AtlasImageViewer
       auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view imageInformation = "") -> void;
       auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view mainLabelText, const std::string_view progressBarTextformat) -> void;
       auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const int value) -> void;
-      auto RotateImage(std::string&& imagePath) -> void;
       auto ResetImage() -> void;
       auto MoveImageLeft() -> void;
       auto MoveImageRight() -> void;
@@ -108,6 +107,9 @@ namespace AtlasImageViewer
       //auto AddFBOToArray(std::unique_ptr<QOpenGLFramebufferObject>&& fbo, const double weight) -> void;
 
       auto AddFBOToVector(std::unique_ptr<QOpenGLFramebufferObject>&& fbo) -> void;
+
+      auto RotateImage(const double angleDegrees) -> void;
+      auto ScaleImage(const int value) -> void;
       
   };
 }

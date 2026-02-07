@@ -47,7 +47,8 @@ namespace AtlasCommon
     NextImage,
     PreviousImage,
     SliderUpdated,
-    RotateImage
+    RotateImage,
+    ScaleImage
   };
 
   enum class AtlasClasses : std::uint8_t
