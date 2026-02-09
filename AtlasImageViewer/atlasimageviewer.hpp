@@ -89,6 +89,8 @@ namespace AtlasImageViewer
       double m_rotationRadians{0.0};
       double overlay_xPos{0.0};
       double overlay_yPos{0.0};
+      double m_overlayTranslateNdcX{0.0};
+      double m_overlayTranslateNdcY{0.0};
       double xPos{0.0};
       double yPos{0.0};
       double scale_size{1.0};

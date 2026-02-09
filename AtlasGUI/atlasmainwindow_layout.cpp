@@ -25,6 +25,10 @@ namespace AtlasGUI
     m_atlasimageViewer = new AtlasImageViewer::ImageViewer{};
     m_atlasimageViewerContainer = QWidget::createWindowContainer(m_atlasimageViewer);
 
+    // Ensure the embedded QOpenGLWindow can actually receive key events.
+    m_atlasimageViewerContainer->setFocusPolicy(Qt::StrongFocus);
+    m_atlasimageViewerContainer->setFocus();
+
     AtlasMessenger::Messenger::Instance().SetImageViewer(m_atlasimageViewer);
 
     QObject::connect(m_atlasimageViewer, &AtlasImageViewer::ImageViewer::CreateLoadingModelPopupSignal, this, &AtlasMainWindowLayout::CreateLoadingModelPopup);

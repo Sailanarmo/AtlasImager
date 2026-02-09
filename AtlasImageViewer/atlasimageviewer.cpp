@@ -612,11 +612,26 @@ namespace AtlasImageViewer
     // Draw Overlay fbo
     if (overlayFbo)
     {
+      // Convert 1 device-pixel to NDC. Keep this here so it always matches the current viewport.
+      const float dpr = static_cast<float>(this->devicePixelRatio());
+      const float viewportW = std::max(1.0f, static_cast<float>(this->width()) * dpr);
+      const float viewportH = std::max(1.0f, static_cast<float>(this->height()) * dpr);
+      const float ndcPerPixelX = 2.0f / viewportW;
+      const float ndcPerPixelY = 2.0f / viewportH;
+
       glEnable(GL_BLEND);
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
       glPushMatrix();
       glBindTexture(GL_TEXTURE_2D, overlayFbo->texture());
+
+      // Apply a screen-space translation (in NDC) so arrow keys move the overlay image.
+      // Translation is applied after scaling due to OpenGL's post-multiply convention.
+      glTranslatef(
+        static_cast<float>(m_overlayTranslateNdcX),
+        static_cast<float>(m_overlayTranslateNdcY),
+        0.0f);
+
       glScalef(overlay_scale_size, overlay_scale_size, 1.0f);
       glColor4f(1.0, 1.0, 1.0, m_opacity);
       glScalef(scale_size, scale_size, 1.0f);
@@ -714,25 +729,41 @@ namespace AtlasImageViewer
 
   auto ImageViewer::MoveOverlayLeft() -> void {
     m_logger.Log(AtlasLogger::LogLevel::Info, "Image moved to the left! We are in the backend.");
-    overlay_xPos += 0.01f;
+
+    const float dpr = static_cast<float>(this->devicePixelRatio());
+    const float viewportW = std::max(1.0f, static_cast<float>(this->width()) * dpr);
+    const float ndcPerPixelX = 2.0f / viewportW;
+    m_overlayTranslateNdcX -= ndcPerPixelX;
     this->update();
   }
 
   auto ImageViewer::MoveOverlayRight() -> void {
     m_logger.Log(AtlasLogger::LogLevel::Info, "Image moved to the right! We are in the backend.");
-    overlay_xPos -= 0.01f;
+
+    const float dpr = static_cast<float>(this->devicePixelRatio());
+    const float viewportW = std::max(1.0f, static_cast<float>(this->width()) * dpr);
+    const float ndcPerPixelX = 2.0f / viewportW;
+    m_overlayTranslateNdcX += ndcPerPixelX;
     this->update();
   }
 
   auto ImageViewer::MoveOverlayUp() -> void {
     m_logger.Log(AtlasLogger::LogLevel::Info, "Image moved up! We are in the backend.");
-    overlay_yPos -= 0.01f;
+
+    const float dpr = static_cast<float>(this->devicePixelRatio());
+    const float viewportH = std::max(1.0f, static_cast<float>(this->height()) * dpr);
+    const float ndcPerPixelY = 2.0f / viewportH;
+    m_overlayTranslateNdcY += ndcPerPixelY;
     this->update();
   }
 
   auto ImageViewer::MoveOverlayDown() -> void {
     m_logger.Log(AtlasLogger::LogLevel::Info, "Image moved down! We are in the backend.");
-    overlay_yPos += 0.01f;
+
+    const float dpr = static_cast<float>(this->devicePixelRatio());
+    const float viewportH = std::max(1.0f, static_cast<float>(this->height()) * dpr);
+    const float ndcPerPixelY = 2.0f / viewportH;
+    m_overlayTranslateNdcY -= ndcPerPixelY;
     this->update();
   }
 
