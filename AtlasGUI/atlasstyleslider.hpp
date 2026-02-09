@@ -1,9 +1,7 @@
 //
 // Created by Jared Gibson on 6/13/25.
 //
-
-#ifndef ATLASIMAGER_OPACITYSLIDERSTYLE_H
-#define ATLASIMAGER_OPACITYSLIDERSTYLE_H
+#pragma once
 
 #include <QProxyStyle>
 
@@ -21,5 +19,3 @@ public:
         return QProxyStyle::styleHint(hint,option,widget,returnData);
     }
 };
-
-#endif //ATLASIMAGER_OPACITYSLIDERSTYLE_H
