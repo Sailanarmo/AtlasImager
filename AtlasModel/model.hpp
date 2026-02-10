@@ -41,14 +41,16 @@ namespace AtlasModel
       std::vector<AtlasImage::Image> m_images;
 
       auto InitializeModel() -> void;
-      auto GetQueryDescriptors(const AtlasImage::Image& img) -> AtlasImage::Image;
-      auto CalculateMatchScore(const AtlasImage::Image& targetDescriptors, 
-                               const AtlasImage::Image& modelDescriptors) -> std::pair<std::string, double>;
-      //auto ProcessBestFits(const std::string_view imageName) -> void;
-      // auto GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>;
       auto GetAllModelImagePaths() -> std::expected<std::vector<std::string>, LoadDataSetResult>;
       auto LoadDataSet(const AtlasCommon::AtlasDataSet dataSet) -> void;
       auto LoadAllDataSetImages(const AtlasCommon::AtlasDataSet dataSet) -> void;
+
+      // TODO: For image matching.
+      //auto GetQueryDescriptors(const AtlasImage::Image& img) -> AtlasImage::Image;
+      //auto CalculateMatchScore(const AtlasImage::Image& targetDescriptors, 
+                               //const AtlasImage::Image& modelDescriptors) -> std::pair<std::string, double>;
+      //auto ProcessBestFits(const std::string_view imageName) -> void;
+      // auto GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>;
 
       AtlasCommon::AtlasDataSet m_loadedDataSet{AtlasCommon::AtlasDataSet::LGN};
       
