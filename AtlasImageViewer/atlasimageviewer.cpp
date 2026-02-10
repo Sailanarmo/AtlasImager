@@ -711,8 +711,6 @@ namespace AtlasImageViewer
   }
 
   auto ImageViewer::SaveImage() -> void {
-      m_logger.Log(AtlasLogger::LogLevel::Info, "Image saved! We are in the backend.");
-
       // Get what is displayed or something
       QImage image = this->grabFramebuffer();
 
@@ -916,6 +914,10 @@ namespace AtlasImageViewer
           this->RotateImage(*deg);
         else
           m_logger.Log(AtlasLogger::LogLevel::Error, "Failed to parse rotation degrees from: {}", imageInformation);
+        break;
+      case AtlasCommon::AtlasImageViewerState::SaveCurrentImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Save Current Image requested");
+        this->SaveImage();
         break;
       default:
         break;
