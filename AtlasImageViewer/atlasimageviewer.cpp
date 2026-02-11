@@ -5,7 +5,6 @@
 
 
 #include <ranges>
-#include <print>
 #include <numbers>
 #include <expected>
 #include <charconv>
@@ -22,7 +21,11 @@
 namespace AtlasImageViewer
 {
 
-  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/ImageViewer.log", "AtlasImageViewer::ImageViewer"};
+  static AtlasLogger::Logger m_logger{
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/ImageViewer.log", 
+    "AtlasImageViewer::ImageViewer"
+  };
 
   enum class ImageViewerError : std::uint8_t
   {
@@ -379,7 +382,6 @@ namespace AtlasImageViewer
 //        m_fbos[minWeightIndex].first = std::move(fbo);
 //      }
 //    }
-//    std::println("Successfully added FBO to array");
   }
   */
 
@@ -711,8 +713,6 @@ namespace AtlasImageViewer
   }
 
   auto ImageViewer::SaveImage() -> void {
-      m_logger.Log(AtlasLogger::LogLevel::Info, "Image saved! We are in the backend.");
-
       // Get what is displayed or something
       QImage image = this->grabFramebuffer();
 
@@ -916,6 +916,10 @@ namespace AtlasImageViewer
           this->RotateImage(*deg);
         else
           m_logger.Log(AtlasLogger::LogLevel::Error, "Failed to parse rotation degrees from: {}", imageInformation);
+        break;
+      case AtlasCommon::AtlasImageViewerState::SaveCurrentImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Save Current Image requested");
+        this->SaveImage();
         break;
       default:
         break;

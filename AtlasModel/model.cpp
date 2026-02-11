@@ -24,7 +24,11 @@ namespace AtlasModel
     {AtlasCommon::AtlasDataSet::PAG, "/Dataset/PAG"}
   };
 
-  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/Model.log", "AtlasModel::Model"};
+  static AtlasLogger::Logger m_logger{
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/Model.log", 
+    "AtlasModel::Model"
+  };
 
 
   auto GetImages(const std::filesystem::path& datasetPath) -> std::expected<std::vector<AtlasImage::Image>, Model::LoadDataSetResult>
@@ -70,81 +74,6 @@ namespace AtlasModel
   {
     InitializeModel();
   }
-
-  auto Model::GetQueryDescriptors(const AtlasImage::Image& img) -> AtlasImage::Image
-  {
-    cv::Mat descriptors;
-    cv::Ptr<cv::ORB> detector = cv::ORB::create();
-    auto keyPoints = std::vector<cv::KeyPoint>{};
-    detector->detectAndCompute(*img.GetImage(), cv::Mat(), keyPoints, descriptors);
-
-    auto atlasDescriptor = AtlasImage::Image{img.GetImageName()};
-    atlasDescriptor.CloneData(descriptors);
-    m_logger.Log(AtlasLogger::LogLevel::Info, "Obtained {} keypoints for image: {}", keyPoints.size(), img.GetImageName());
-    return atlasDescriptor;
-  }
-
-  auto Model::CalculateMatchScore(const AtlasImage::Image& targetDescriptors, const AtlasImage::Image& modelDescriptors) -> std::pair<std::string,double>
-  {
-    m_logger.Log(AtlasLogger::LogLevel::Info, "Calculating match score between target: {} and model: {}", targetDescriptors.GetImageName(), modelDescriptors.GetImageName());
-    auto brute_forceMatcher = cv::BFMatcher(cv::NORM_HAMMING, true);
-    auto matches = std::vector<cv::DMatch>{};
-
-    m_logger.Log(AtlasLogger::LogLevel::Info, "Matching descriptors...");
-    brute_forceMatcher.match(*targetDescriptors.GetImage(), *modelDescriptors.GetImage(), matches);
-
-    m_logger.Log(AtlasLogger::LogLevel::Info, "Calculating the distances");
-    auto totalDistance = double{0.0};
-
-    std::ranges::for_each(matches, [&totalDistance](const cv::DMatch& match){
-      totalDistance += match.distance;
-    });
-
-    return std::make_pair(std::string{modelDescriptors.GetImageName()}, double{totalDistance/matches.size()});
-  }
-
-  // Should this return by rvalue reference?
-  /*
-  auto Model::GetBestFits(const std::string_view imageName) -> std::vector<std::string> {
-    auto bestFits = std::vector<std::string>{};
-    double num = 0;
-    for(auto &image : m_images) {
-      auto name = image.GetImageName();
-      m_logger.Log(AtlasLogger::LogLevel::Info, "Best fit image name: {}", name);
-      bestFits.push_back(std::string(name) + ":" + std::to_string(num));
-      num += 1;
-    }
-    return bestFits;
-  }
-  */
-//  auto Model::GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>
-//  {
-//    auto bestFits = std::array<std::string,3>{};
-//    auto img = AtlasImage::Image{imageName.data()};
-//    auto imgDescriptors = GetQueryDescriptors(img);
-//
-//    auto candidateDescriptors = std::vector<AtlasImage::Image>{};
-//
-//    std::ranges::transform(m_images,std::back_inserter(candidateDescriptors),
-//      [this](const AtlasImage::Image& image){
-//        return GetQueryDescriptors(image);
-//      }
-//    );
-//
-//    auto scores = candidateDescriptors
-//    | std::views::transform([this,imgDescriptors](const AtlasImage::Image& descriptor) {
-//        return this->CalculateMatchScore(imgDescriptors,descriptor);
-//      })
-//    | std::ranges::to<std::vector<std::pair<std::string,double>>>();
-//
-//    std::ranges::sort(scores, [](const auto& a, const auto& b) { return a.second < b.second; });
-//
-//    bestFits[0] = std::string{scores[0].first + ":" + std::to_string(scores[0].second)};
-//    bestFits[1] = std::string{scores[1].first + ":" + std::to_string(scores[1].second)};
-//    bestFits[2] = std::string{scores[2].first + ":" + std::to_string(scores[2].second)};
-//    std::println("{}", bestFits);
-//    return bestFits;
-//  }
 
   auto Model::LoadDataSet(const AtlasCommon::AtlasDataSet dataSet) -> void
   {
@@ -235,20 +164,6 @@ namespace AtlasModel
     AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);
   }
 
-  /*
-  auto Model::ProcessBestFits(const std::string_view imageName) -> void
-  {
-    auto bestFits = this->GetBestFits(imageName);
-    std::sort(bestFits.begin(), bestFits.end());
-    std::ranges::for_each(bestFits, [](const auto& image)
-    {
-      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::AddImage, AtlasCommon::AtlasClasses::AtlasImageViewer, image);
-    });
-
-    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);
-  }
-  */
-
   auto Model::HandleStateUpdate(const AtlasCommon::AtlasModelState state, const std::string_view userImage) -> void
   {
     switch(state)
@@ -296,5 +211,93 @@ namespace AtlasModel
     m_logger.Log(AtlasLogger::LogLevel::Info, "Model initialized.");
     AtlasCommon::CurrentAtlasState = AtlasCommon::AtlasModelState::Idle;
   }
+
+  /*
+  auto Model::GetQueryDescriptors(const AtlasImage::Image& img) -> AtlasImage::Image
+  {
+    cv::Mat descriptors;
+    cv::Ptr<cv::ORB> detector = cv::ORB::create();
+    auto keyPoints = std::vector<cv::KeyPoint>{};
+    detector->detectAndCompute(*img.GetImage(), cv::Mat(), keyPoints, descriptors);
+
+    auto atlasDescriptor = AtlasImage::Image{img.GetImageName()};
+    atlasDescriptor.CloneData(descriptors);
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Obtained {} keypoints for image: {}", keyPoints.size(), img.GetImageName());
+    return atlasDescriptor;
+  }
+
+  auto Model::CalculateMatchScore(const AtlasImage::Image& targetDescriptors, const AtlasImage::Image& modelDescriptors) -> std::pair<std::string,double>
+  {
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Calculating match score between target: {} and model: {}", targetDescriptors.GetImageName(), modelDescriptors.GetImageName());
+    auto brute_forceMatcher = cv::BFMatcher(cv::NORM_HAMMING, true);
+    auto matches = std::vector<cv::DMatch>{};
+
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Matching descriptors...");
+    brute_forceMatcher.match(*targetDescriptors.GetImage(), *modelDescriptors.GetImage(), matches);
+
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Calculating the distances");
+    auto totalDistance = double{0.0};
+
+    std::ranges::for_each(matches, [&totalDistance](const cv::DMatch& match){
+      totalDistance += match.distance;
+    });
+
+    return std::make_pair(std::string{modelDescriptors.GetImageName()}, double{totalDistance/matches.size()});
+  }
+
+  // Should this return by rvalue reference?
+  auto Model::GetBestFits(const std::string_view imageName) -> std::vector<std::string> {
+    auto bestFits = std::vector<std::string>{};
+    double num = 0;
+    for(auto &image : m_images) {
+      auto name = image.GetImageName();
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Best fit image name: {}", name);
+      bestFits.push_back(std::string(name) + ":" + std::to_string(num));
+      num += 1;
+    }
+    return bestFits;
+  }
+
+  auto Model::GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>
+  {
+    auto bestFits = std::array<std::string,3>{};
+    auto img = AtlasImage::Image{imageName.data()};
+    auto imgDescriptors = GetQueryDescriptors(img);
+
+    auto candidateDescriptors = std::vector<AtlasImage::Image>{};
+
+    std::ranges::transform(m_images,std::back_inserter(candidateDescriptors),
+      [this](const AtlasImage::Image& image){
+        return GetQueryDescriptors(image);
+      }
+    );
+
+    auto scores = candidateDescriptors
+    | std::views::transform([this,imgDescriptors](const AtlasImage::Image& descriptor) {
+        return this->CalculateMatchScore(imgDescriptors,descriptor);
+      })
+    | std::ranges::to<std::vector<std::pair<std::string,double>>>();
+
+    std::ranges::sort(scores, [](const auto& a, const auto& b) { return a.second < b.second; });
+
+    bestFits[0] = std::string{scores[0].first + ":" + std::to_string(scores[0].second)};
+    bestFits[1] = std::string{scores[1].first + ":" + std::to_string(scores[1].second)};
+    bestFits[2] = std::string{scores[2].first + ":" + std::to_string(scores[2].second)};
+    std::println("{}", bestFits);
+    return bestFits;
+  }
+
+  auto Model::ProcessBestFits(const std::string_view imageName) -> void
+  {
+    auto bestFits = this->GetBestFits(imageName);
+    std::sort(bestFits.begin(), bestFits.end());
+    std::ranges::for_each(bestFits, [](const auto& image)
+    {
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::AddImage, AtlasCommon::AtlasClasses::AtlasImageViewer, image);
+    });
+
+    AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);
+  }
+  */
 
 }

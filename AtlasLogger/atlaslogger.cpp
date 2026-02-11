@@ -10,6 +10,13 @@ namespace AtlasLogger
     this->initializeLogFile();
   }
 
+  Logger::~Logger()
+  {
+    std::ofstream ofs(m_logFilePath, std::ios::app);
+    ofs << "--- Atlas Logger Instance for " << m_loggerClassName << " Destroyed ---\n";
+    ofs.close();
+  }
+
   auto Logger::initializeLogFile() -> void
   {
     if(!std::filesystem::exists(m_logFilePath.parent_path()))
@@ -49,7 +56,6 @@ namespace AtlasLogger
         << "[" << LogLevelToString(level) << "] "
         << "[" << m_loggerClassName << "] "
         << message << "\n";
-        //<< " (at " << loc.file_name() << ":" << loc.line() << " in " << loc.function_name() << ")\n";
 
     ofs.close();
   }
