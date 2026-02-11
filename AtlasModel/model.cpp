@@ -24,7 +24,11 @@ namespace AtlasModel
     {AtlasCommon::AtlasDataSet::PAG, "/Dataset/PAG"}
   };
 
-  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/Model.log", "AtlasModel::Model"};
+  static AtlasLogger::Logger m_logger{
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/Model.log", 
+    "AtlasModel::Model"
+  };
 
 
   auto GetImages(const std::filesystem::path& datasetPath) -> std::expected<std::vector<AtlasImage::Image>, Model::LoadDataSetResult>

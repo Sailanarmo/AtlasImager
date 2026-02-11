@@ -11,7 +11,10 @@
 namespace AtlasGUI
 {
 
-  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/AtlasMainWindowLayout.log", "AtlasGUI::AtlasMainWindowLayout"};
+  static AtlasLogger::Logger m_logger{
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/AtlasMainWindowLayout.log", "AtlasGUI::AtlasMainWindowLayout"
+  };
 
   AtlasMainWindowLayout::AtlasMainWindowLayout(QWidget* parent) : QHBoxLayout{parent}
   {

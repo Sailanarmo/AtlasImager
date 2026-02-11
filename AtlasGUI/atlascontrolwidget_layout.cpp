@@ -15,11 +15,12 @@
 #include <QPushButton>
 #include <QCheckBox>
 
-#include <print>
-
 namespace AtlasGUI
 {
-  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/AtlasControlWidgetLayout.log", "AtlasGUI::AtlasControlWidgetLayout"};
+  static AtlasLogger::Logger m_logger{
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/AtlasControlWidgetLayout.log", "AtlasGUI::AtlasControlWidgetLayout"
+  };
 
   AtlasControlWidgetLayout::AtlasControlWidgetLayout(QWidget* parent) : QVBoxLayout{parent}
   {

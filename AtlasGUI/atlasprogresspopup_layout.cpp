@@ -5,7 +5,11 @@
 namespace AtlasGUI
 {
 
-  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/AtlasProgressPopupLayout.log", "AtlasGUI::AtlasProgressPopupLayout"};
+  static AtlasLogger::Logger m_logger{
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/AtlasProgressPopupLayout.log", 
+    "AtlasGUI::AtlasProgressPopupLayout"
+  };
 
   AtlasProgressPopupLayout::AtlasProgressPopupLayout(const QString& mainLoadingText, const QString& format, QWidget* parent) : QVBoxLayout{parent}
   {

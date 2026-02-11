@@ -6,6 +6,8 @@
 #include <filesystem>
 #include <source_location>
 
+#include <QStandardPaths>
+
 namespace AtlasLogger
 {
   enum class LogLevel : std::uint8_t
@@ -30,6 +32,14 @@ namespace AtlasLogger
     }
   };
 
+  inline const auto GetCurrentDateString = []() -> std::string
+  {
+    const auto now = std::chrono::system_clock::now();
+    const auto& tz = std::chrono::current_zone();
+    const auto localTime = std::chrono::zoned_time{tz, now};
+    return std::format("{0:%F}", localTime);
+  };
+
   template<class... Args>
   struct format_string_with_source {
     std::format_string<Args...> fmt;
@@ -47,6 +57,7 @@ namespace AtlasLogger
   {
     public:
       Logger(const std::string_view logFilePath, const std::string_view loggerClassName);
+      ~Logger();
 
       template<typename...Args>
       auto Log(const LogLevel level, format_string_with_source<std::type_identity_t<Args>...> fmtWithLoc, Args&&... args) -> void

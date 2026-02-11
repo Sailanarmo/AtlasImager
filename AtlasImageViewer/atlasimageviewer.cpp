@@ -5,7 +5,6 @@
 
 
 #include <ranges>
-#include <print>
 #include <numbers>
 #include <expected>
 #include <charconv>
@@ -22,7 +21,11 @@
 namespace AtlasImageViewer
 {
 
-  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/ImageViewer.log", "AtlasImageViewer::ImageViewer"};
+  static AtlasLogger::Logger m_logger{
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/ImageViewer.log", 
+    "AtlasImageViewer::ImageViewer"
+  };
 
   enum class ImageViewerError : std::uint8_t
   {
@@ -379,7 +382,6 @@ namespace AtlasImageViewer
 //        m_fbos[minWeightIndex].first = std::move(fbo);
 //      }
 //    }
-//    std::println("Successfully added FBO to array");
   }
   */
 

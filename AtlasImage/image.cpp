@@ -1,17 +1,24 @@
 #include "image.hpp"
 
+#include "AtlasLogger/atlaslogger.hpp"
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 
-#include <print>
 
 namespace AtlasImage
 {
+
+  static AtlasLogger::Logger m_logger{
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/Image.log", 
+    "AtlasImage::Image"
+  };
+
   Image::Image(const std::string_view imageName) : m_imageName{imageName}
   {
-    std::println("Image constructor called with: {}", imageName);
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image constructor called with: {}", imageName);
     m_image = std::make_shared<cv::Mat>(cv::imread(std::string{imageName}.c_str(), cv::IMREAD_GRAYSCALE));
-    std::println("Image created with size: {}x{}", m_image->cols, m_image->rows);
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image created with size: {}x{}", m_image->cols, m_image->rows);
   }
 
   auto Image::SetImage(const std::string_view imageName) -> void
