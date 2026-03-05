@@ -1,0 +1,43 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+
+  "configurePresets": [
+    {
+      "name": "desktop-msvc",
+      "displayName": "Desktop (MSVC)",
+      "description": "Qt desktop build for Windows with MSVC",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "AS_WASM": "OFF",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "wasm",
+      "displayName": "WebAssembly (Emscripten)",
+      "description": "Builds atlas.js + atlas.wasm via Emscripten. Requires EMSDK env var to be set.",
+      "binaryDir": "${sourceDir}/build-wasm",
+      "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+      "cacheVariables": {
+        "AS_WASM": "ON",
+        "CMAKE_BUILD_TYPE": "Release",
+        "OpenCV_DIR": "${sourceDir}/thirdparty/opencv/install"
+      },
+      "environment": {
+        "EMCC_CFLAGS": "-std=c++23"
+      }
+    }
+  ],
+
+  "buildPresets": [
+    {
+      "name": "desktop-msvc",
+      "configurePreset": "desktop-msvc"
+    },
+    {
+      "name": "wasm",
+      "configurePreset": "wasm"
+    }
+  ]
+}

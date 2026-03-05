@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AtlasCommon/atlasenums.hpp"
+#include "AtlasCommon/iimageviewer.hpp"
 
 #include <memory>
 #include <array>
@@ -31,7 +32,7 @@ class QImage;
 */
 namespace AtlasImageViewer
 {
-  class ImageViewer : public QOpenGLWindow, protected QOpenGLFunctions
+  class ImageViewer : public QOpenGLWindow, protected QOpenGLFunctions, public AtlasCommon::IImageViewer
   {
     Q_OBJECT
     public:
@@ -41,9 +42,9 @@ namespace AtlasImageViewer
       auto OnNextButtonPressed() -> void;
       auto OnPrevButtonPressed() -> void;
       auto OnSliderUpdated(double value) -> void;
-      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view imageInformation = "") -> void;
-      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view mainLabelText, const std::string_view progressBarTextformat) -> void;
-      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const int value) -> void;
+      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view imageInformation = "") -> void override;
+      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view mainLabelText, const std::string_view progressBarTextformat) -> void override;
+      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const int value) -> void override;
       auto ResetImage() -> void;
       auto MoveImageLeft() -> void;
       auto MoveImageRight() -> void;

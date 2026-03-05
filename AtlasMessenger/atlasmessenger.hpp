@@ -1,14 +1,9 @@
 #pragma once
 
 #include "AtlasCommon/atlasenums.hpp"
+#include "AtlasCommon/iimageviewer.hpp"
 #include <memory>
 #include <mutex>
-
-
-namespace AtlasImageViewer
-{
-  class ImageViewer;
-}
 
 namespace AtlasModel
 {
@@ -36,11 +31,11 @@ namespace AtlasMessenger
       auto UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID, const std::string_view mainLabelText, const std::string_view progressBarTextformat) -> void;
       auto UpdateState(const AtlasCommon::AtlasState state, const AtlasCommon::AtlasClasses classID, const int value) -> void;
 
-      auto SetImageViewer(AtlasImageViewer::ImageViewer* imageViewer) -> void;
+      auto SetImageViewer(AtlasCommon::IImageViewer* imageViewer) -> void;
       auto SetModel(AtlasModel::Model* model) -> void;
 
     private:
-      AtlasImageViewer::ImageViewer* m_imageViewer{nullptr};
+      AtlasCommon::IImageViewer* m_imageViewer{nullptr};
       AtlasModel::Model* m_model{nullptr};
 
       Messenger() = default;
