@@ -10,6 +10,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include <cmath>
+#include <array>
 #include <numbers>
 #include <algorithm>
 
@@ -73,7 +74,7 @@ namespace
   auto BuildTransform(float scaleX, float scaleY,
                       float panX,   float panY,
                       float rotationDegrees,
-                      float viewportAspect) -> float[9]
+                      float viewportAspect) -> std::array<float, 9>
   {
     const float rad  = rotationDegrees * (kPi / 180.0f);
     const float cosA = std::cos(rad);
@@ -81,8 +82,8 @@ namespace
 
     // Rotate in square space (aspect-corrected) then scale back out.
     // Column-major layout expected by glUniformMatrix3fv.
-    float m[9] = {
-       cosA * scaleX / viewportAspect,  sinA * scaleY,               0.0f,
+    std::array<float, 9> m = {
+       cosA * scaleX / viewportAspect,  sinA * scaleY,                  0.0f,
       -sinA * scaleX,                   cosA * scaleY * viewportAspect, 0.0f,
        panX,                            panY,                           1.0f,
     };
@@ -424,6 +425,31 @@ namespace AtlasImageViewerWeb
   auto ImageViewer::AddOverlayImage(std::string_view imagePath) -> void
   {
     auto img = AtlasImage::Image{imagePath};
+    int w{}, h{};
+    GLuint tex = UploadFromAtlasImage(img, w, h);
+    if(tex) m_overlayTextures.push_back(tex);
+    Paint();
+  }
+
+  auto ImageViewer::LoadMainImageFromPixels(const unsigned char* data,
+                                            int width, int height, int channels) -> void
+  {
+    const int cvType = (channels == 1) ? CV_8UC1
+                     : (channels == 3) ? CV_8UC3
+                     : CV_8UC4;
+    auto img = AtlasImage::Image{"user_image", data, width, height, cvType};
+    DeleteTexture(m_baseTexture);
+    m_baseTexture = UploadFromAtlasImage(img, m_baseWidth, m_baseHeight);
+    Paint();
+  }
+
+  auto ImageViewer::AddOverlayImageFromPixels(const unsigned char* data,
+                                              int width, int height, int channels) -> void
+  {
+    const int cvType = (channels == 1) ? CV_8UC1
+                     : (channels == 3) ? CV_8UC3
+                     : CV_8UC4;
+    auto img = AtlasImage::Image{"overlay_image", data, width, height, cvType};
     int w{}, h{};
     GLuint tex = UploadFromAtlasImage(img, w, h);
     if(tex) m_overlayTextures.push_back(tex);

@@ -5,6 +5,7 @@
 #include <emscripten.h>
 #include <emscripten/bind.h>
 #include <emscripten/html5.h>
+#include <emscripten/val.h>
 
 #include <memory>
 #include <string>
@@ -86,6 +87,40 @@ auto loadMainImage(const std::string& path) -> void
 }
 
 // ---------------------------------------------------------------------------
+// Pixel-based image loading (preferred WASM path — no cv::imread needed)
+// ---------------------------------------------------------------------------
+
+// Transfer a JS Uint8Array into WASM linear memory, returning it as a vector.
+static auto JsArrayToVec(const emscripten::val& jsArray) -> std::vector<uint8_t>
+{
+  const auto len = jsArray["length"].as<unsigned>();
+  std::vector<uint8_t> buf(len);
+  // Create a Uint8Array view over our freshly allocated WASM buffer and
+  // call .set() to copy the JS-side bytes in a single JS call (fast path).
+  emscripten::val::global("Uint8Array")
+    .new_(emscripten::val::module_property("HEAPU8")["buffer"],
+          reinterpret_cast<uintptr_t>(buf.data()), len)
+    .call<void>("set", jsArray);
+  return buf;
+}
+
+// Called from TypeScript with decoded TIFF pixel data (Uint8Array).
+// channels: 1 = grayscale, 3 = RGB, 4 = RGBA
+auto loadMainImageFromPixels(emscripten::val pixelData,
+                             int width, int height, int channels) -> void
+{
+  auto buf = JsArrayToVec(pixelData);
+  g_viewer.LoadMainImageFromPixels(buf.data(), width, height, channels);
+}
+
+auto addOverlayImageFromPixels(emscripten::val pixelData,
+                               int width, int height, int channels) -> void
+{
+  auto buf = JsArrayToVec(pixelData);
+  g_viewer.AddOverlayImageFromPixels(buf.data(), width, height, channels);
+}
+
+// ---------------------------------------------------------------------------
 // Viewer controls — called directly from TypeScript UI
 // ---------------------------------------------------------------------------
 
@@ -119,7 +154,9 @@ EMSCRIPTEN_BINDINGS(atlas_imager)
   emscripten::function("initModel",       &initModel);
   emscripten::function("runMatching",     &runMatching);
 
-  emscripten::function("loadMainImage",   &loadMainImage);
+  emscripten::function("loadMainImage",            &loadMainImage);
+  emscripten::function("loadMainImageFromPixels",   &loadMainImageFromPixels);
+  emscripten::function("addOverlayImageFromPixels", &addOverlayImageFromPixels);
 
   emscripten::function("setOpacity",      &setOpacity);
   emscripten::function("setRotation",     &setRotation);

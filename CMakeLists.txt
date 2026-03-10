@@ -16,7 +16,12 @@ set(ATLASIMAGER_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 # ---------------------------------------------------------------------------
 # Shared modules (both builds)
 # ---------------------------------------------------------------------------
-find_package(OpenCV REQUIRED HINTS ${CMAKE_CURRENT_LIST_DIR}/thirdparty/opencv/install)
+if(AS_WASM)
+  set(OpenCV_DIR /home/sailanarmo/opencv/build_js)
+else()
+  set(OpenCV_DIR ${CMAKE_CURRENT_LIST_DIR}/thirdparty/opencv/lib/cmake/opencv4)
+endif()
+find_package(OpenCV REQUIRED)
 
 add_subdirectory(AtlasLogger)
 add_subdirectory(AtlasImage)

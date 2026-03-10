@@ -22,7 +22,7 @@
       "cacheVariables": {
         "AS_WASM": "ON",
         "CMAKE_BUILD_TYPE": "Release",
-        "OpenCV_DIR": "${sourceDir}/thirdparty/opencv/install"
+        "OpenCV_DIR": "${sourceDir}/thirdparty/opencv"
       },
       "environment": {
         "EMCC_CFLAGS": "-std=c++23"

@@ -3,7 +3,6 @@
 #include "AtlasLogger/atlaslogger.hpp"
 
 #include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
 
 #include <mutex>
@@ -14,7 +13,7 @@
 #include <filesystem>
 
 
-#include <QCoreApplication>
+//#include <QCoreApplication>
 
 namespace AtlasModel
 {
@@ -49,14 +48,24 @@ namespace AtlasModel
       AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DisplayPopup, AtlasCommon::AtlasClasses::AtlasImageViewer);
       
       // Give the GUI event loop a chance to display the popup before we start the blocking image load
-      QCoreApplication::processEvents();
+      //QCoreApplication::processEvents();
     }
     
+#ifdef __EMSCRIPTEN__
+    auto index = std::ptrdiff_t{0};
+    for(const auto& entry : std::filesystem::directory_iterator{datasetPath})
+    {
+      images.emplace_back(AtlasImage::Image(entry.path().string()));
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::UpdateProgressBarValue, AtlasCommon::AtlasClasses::AtlasImageViewer, index + 1);
+      ++index;
+    }
+#else
     for(const auto& [index, entry] : std::views::enumerate(std::filesystem::directory_iterator{datasetPath}) )
     {
       images.emplace_back(AtlasImage::Image(entry.path().string()));
       AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::UpdateProgressBarValue, AtlasCommon::AtlasClasses::AtlasImageViewer, index + 1);
     }
+#endif
 
     if(images.empty())
     {
@@ -222,14 +231,25 @@ namespace AtlasModel
     AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DisplayPopup, AtlasCommon::AtlasClasses::AtlasImageViewer);
       
     // Give the GUI event loop a chance to display the popup before we start the blocking image load
-    QCoreApplication::processEvents();
+    //QCoreApplication::processEvents();
 
+#ifdef __EMSCRIPTEN__
+    auto index = std::ptrdiff_t{0};
+    for(const auto& path : imagePaths)
+    {
+      m_logger.Log(AtlasLogger::LogLevel::Info, "Sending model image to ImageViewer: {}", path);
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::AddImage, AtlasCommon::AtlasClasses::AtlasImageViewer, path);
+      AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::UpdateProgressBarValue, AtlasCommon::AtlasClasses::AtlasImageViewer, index + 1);
+      ++index;
+    }
+#else
     for(const auto& [index, path] : std::views::enumerate(imagePaths))
     {
       m_logger.Log(AtlasLogger::LogLevel::Info, "Sending model image to ImageViewer: {}", path);
       AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::AddImage, AtlasCommon::AtlasClasses::AtlasImageViewer, path);
       AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::UpdateProgressBarValue, AtlasCommon::AtlasClasses::AtlasImageViewer, index + 1);
     }
+#endif
 
     AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::DestroyPopup, AtlasCommon::AtlasClasses::AtlasImageViewer); 
     AtlasMessenger::Messenger::Instance().UpdateState(AtlasCommon::AtlasImageViewerState::Idle, AtlasCommon::AtlasClasses::AtlasImageViewer);

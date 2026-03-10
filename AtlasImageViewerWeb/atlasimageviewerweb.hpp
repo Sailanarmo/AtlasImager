@@ -78,6 +78,14 @@ namespace AtlasImageViewerWeb
     // Triggers a browser download of the current canvas contents as a PNG.
     auto SaveImage()        -> void;
 
+    // Load images from raw decoded pixel data (WASM path — no cv::imread).
+    // data must be packed 8-bit pixels: width * height * channels bytes.
+    // channels: 1 = grayscale, 3 = RGB, 4 = RGBA
+    auto LoadMainImageFromPixels(const unsigned char* data,
+                                 int width, int height, int channels) -> void;
+    auto AddOverlayImageFromPixels(const unsigned char* data,
+                                   int width, int height, int channels) -> void;
+
   private:
     // -----------------------------------------------------------------------
     // GL state

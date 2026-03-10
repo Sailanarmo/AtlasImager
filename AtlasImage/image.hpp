@@ -21,6 +21,14 @@ namespace AtlasImage
     public:
       Image(const std::string_view imageName);
 
+#ifdef __EMSCRIPTEN__
+      // WASM constructor: build directly from caller-provided raw pixel data.
+      // data   – packed pixels (8-bit per channel, length = width*height*channels)
+      // cvType – an OpenCV type constant, e.g. CV_8UC1 / CV_8UC3 / CV_8UC4
+      Image(std::string_view imageName,
+            const unsigned char* data, int width, int height, int cvType);
+#endif
+
       auto SetImage(const std::string_view imageName) -> void;
       auto CloneData(const cv::Mat& toClone) -> void;
 

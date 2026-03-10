@@ -45,7 +45,11 @@ namespace AtlasLogger
 
     const auto timeT = std::chrono::system_clock::to_time_t(timestamp);
 
+  #ifdef __EMSCRIPTEN__
+    ofs << "[" << std::ctime(&timeT) << "] "
+  #else
     ofs << "[" << std::chrono::current_zone()->to_local(timestamp) << "] "
+  #endif
         << "[" << LogLevelToString(level) << "] "
         << "[" << m_loggerClassName << "] "
         << message << "\n";
