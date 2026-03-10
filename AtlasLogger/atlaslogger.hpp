@@ -1,83 +1,15 @@
 #pragma once
 
-#include <format>
-#include <cstdint>
-#include <chrono>
-#include <filesystem>
-#include <source_location>
+// Umbrella header — include this everywhere.
+// Automatically selects the right logger implementation:
+//   WASM build  → AtlasLogger::ConsoleLogger (browser console via emscripten_log)
+//   Native build → AtlasLogger::FileLogger   (writes to disk)
+// Both are aliased as AtlasLogger::Logger so no call sites need to change.
 
-#include <QStandardPaths>
-
-namespace AtlasLogger
-{
-  enum class LogLevel : std::uint8_t
-  {
-    Debug,
-    Info,
-    Warning,
-    Error,
-    Critical
-  };
-
-  inline const auto LogLevelToString = [](const LogLevel level) -> std::string_view
-  {
-    switch(level)
-    {
-      case LogLevel::Debug:    return "DEBUG";
-      case LogLevel::Info:     return "INFO";
-      case LogLevel::Warning:  return "WARNING";
-      case LogLevel::Error:    return "ERROR";
-      case LogLevel::Critical: return "CRITICAL";
-      default:                 return "UNKNOWN";
-    }
-  };
-
-  inline const auto GetCurrentDateString = []() -> std::string
-  {
-    const auto now = std::chrono::system_clock::now();
-    const auto& tz = std::chrono::current_zone();
-    const auto localTime = std::chrono::zoned_time{tz, now};
-    return std::format("{0:%F}", localTime);
-  };
-
-  template<class... Args>
-  struct format_string_with_source {
-    std::format_string<Args...> fmt;
-    std::source_location loc;
-
-    template<class T>
-    requires std::convertible_to<T, std::string_view>
-    consteval format_string_with_source(
-      const T& fmt,
-      std::source_location loc = std::source_location::current()
-    ) : fmt(fmt), loc(loc) {}
-  };
-
-  class Logger
-  {
-    public:
-      Logger(const std::string_view logFilePath, const std::string_view loggerClassName);
-      ~Logger();
-
-      template<typename...Args>
-      auto Log(const LogLevel level, format_string_with_source<std::type_identity_t<Args>...> fmtWithLoc, Args&&... args) -> void
-      {
-        const auto timestamp = std::chrono::system_clock::now();
-        const auto formattedMessage = std::format("{}:{} {}", fmtWithLoc.loc.file_name(), fmtWithLoc.loc.line(), std::vformat(fmtWithLoc.fmt.get(), std::make_format_args(args...)));
-        this->LogMessageToDisk(level, timestamp, formattedMessage);
-      }
-
-    private:
-      auto initializeLogFile() -> void;
-      auto LogMessageToDisk(
-        const LogLevel level,
-        const std::chrono::system_clock::time_point& timestamp,
-        const std::string_view message
-      ) -> void;
-
-      const std::filesystem::path m_logFilePath;
-      const std::string m_loggerClassName;
-
-  };
-
-} // namespace AtlasLogger
+#ifdef __EMSCRIPTEN__
+#  include "atlasconsolelogger.hpp"
+   namespace AtlasLogger { using Logger = ConsoleLogger; }
+#else
+#  include "atlasfilelogger.hpp"
+   namespace AtlasLogger { using Logger = FileLogger; }
+#endif

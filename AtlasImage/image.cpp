@@ -2,6 +2,8 @@
 
 #include "AtlasLogger/atlaslogger.hpp"
 
+#include <opencv2/imgproc.hpp>
+
 #ifndef __EMSCRIPTEN__
 #include <opencv2/highgui.hpp>
 #endif
@@ -9,11 +11,15 @@
 namespace AtlasImage
 {
 
+#ifdef __EMSCRIPTEN__
+  static AtlasLogger::Logger m_logger{"", "AtlasImage::Image"};
+#else
   static AtlasLogger::Logger m_logger{
-    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
-    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/Image.log", 
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() +
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/Image.log",
     "AtlasImage::Image"
   };
+#endif
 
   Image::Image(const std::string_view imagePath, const bool loadInColor) : m_imageName{imagePath}
   {

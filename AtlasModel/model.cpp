@@ -26,8 +26,12 @@ namespace AtlasModel
   };
 
   static AtlasLogger::Logger m_logger{
-    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
-    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/Model.log", 
+#ifdef __EMSCRIPTEN__
+    "",
+#else
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() +
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/Model.log",
+#endif
     "AtlasModel::Model"
   };
 
