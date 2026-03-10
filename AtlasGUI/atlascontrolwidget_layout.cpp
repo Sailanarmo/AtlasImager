@@ -15,11 +15,12 @@
 #include <QPushButton>
 #include <QCheckBox>
 
-#include <print>
-
 namespace AtlasGUI
 {
-  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/AtlasControlWidgetLayout.log", "AtlasGUI::AtlasControlWidgetLayout"};
+  static AtlasLogger::Logger m_logger{
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/AtlasControlWidgetLayout.log", "AtlasGUI::AtlasControlWidgetLayout"
+  };
 
   AtlasControlWidgetLayout::AtlasControlWidgetLayout(QWidget* parent) : QVBoxLayout{parent}
   {
@@ -80,9 +81,14 @@ namespace AtlasGUI
     loadAllModelImagesButton->setEnabled(false);
     //findBestMatchButton->setEnabled(false);
     
-    QObject::connect(browseButton, &QPushButton::clicked, [lineEdit, renderImageButton]()
+    QObject::connect(browseButton, &QPushButton::clicked, [lineEdit, renderImageButton, layout]()
     {
-      auto path = QFileDialog::getOpenFileName();
+      auto path = QFileDialog::getOpenFileName(
+        layout->parentWidget(),
+        tr("Select Image"),
+        QDir::homePath() + "/Documents",
+        tr("Image Files (*.png *.jpg *.bmp *.tif);;All Files (*)")
+      );
       lineEdit->setText(path);
       if(!path.isEmpty())
         renderImageButton->setEnabled(true);
@@ -238,9 +244,10 @@ namespace AtlasGUI
     layout->addWidget(saveButton);
     QObject::connect(saveButton, &QPushButton::clicked, []() {
       m_logger.Log(AtlasLogger::LogLevel::Info, "Save Image button clicked in GUI.");
-      //auto messenger = &AtlasMessenger::Messenger::Instance();
-      //messenger->SendMessage("SaveImage,", AtlasCommon::AtlasClasses::AtlasImageViewer);
+      auto messenger = &AtlasMessenger::Messenger::Instance();
+      messenger->UpdateState(AtlasCommon::AtlasImageViewerState::SaveCurrentImage, AtlasCommon::AtlasClasses::AtlasImageViewer);
     });
+
     this->addWidget(m_saveImageWidget);
   }
 

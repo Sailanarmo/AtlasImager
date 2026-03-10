@@ -1,28 +1,28 @@
 #include "AtlasGUI/atlasmainwindow.hpp"
 
 #include "AtlasModel/model.hpp"
+#include "AtlasLogger/atlaslogger.hpp"
 #include "AtlasMessenger/atlasmessenger.hpp"
 
 #include <QMainWindow>
 #include <QApplication>
 
 #include <thread>
-#include <print>
 
 namespace 
 {
   std::atomic<bool> shut_down{false};
 }
 
-auto LaunchModelApp() -> void
+auto LaunchModelApp(AtlasLogger::Logger& logger) -> void
 {
-  std::println("Launching Model App");
+  logger.Log(AtlasLogger::LogLevel::Info, "Launching Model App");
   auto model = std::make_unique<AtlasModel::Model>();
   AtlasMessenger::Messenger::Instance().SetModel(model.get());
   while(!shut_down)
   {
   }
-  std::println("Model App Shutting Down");
+  logger.Log(AtlasLogger::LogLevel::Info, "Model App Shutting Down");
   model.reset();
 }
 
@@ -30,13 +30,20 @@ auto main(int argc, char** argv) -> int
 {
 
   QApplication app{argc, argv};
-  QObject::connect(&app, &QApplication::aboutToQuit, []()
+  QCoreApplication::setApplicationName("Atlas Imager");
+
+  auto m_logger = AtlasLogger::Logger{
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/Main.log", "Main"
+  };
+
+  QObject::connect(&app, &QApplication::aboutToQuit, [&m_logger]()
   {
-    std::println("AtlasMainWindow Closing");
+    m_logger.Log(AtlasLogger::LogLevel::Info, "AtlasMainWindow Closing");
     shut_down = true;
   });
 
-  std::thread ModelApp(LaunchModelApp);
+  std::thread ModelApp(LaunchModelApp, std::ref(m_logger));
   ModelApp.detach();
 
   auto mainWindow = QMainWindow{};

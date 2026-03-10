@@ -1,11 +1,11 @@
 #include "atlasimageviewer.hpp"
 
+#include "AtlasImage/image.hpp"
 #include "AtlasLogger/atlaslogger.hpp"
 #include "AtlasMessenger/atlasmessenger.hpp"
 
 
 #include <ranges>
-#include <print>
 #include <numbers>
 #include <expected>
 #include <charconv>
@@ -17,12 +17,18 @@
 #include <QKeyEvent>
 #include <QFileDialog>
 
+#include <QSurfaceFormat>
+
 #include <QColor>
 
 namespace AtlasImageViewer
 {
 
-  static AtlasLogger::Logger m_logger{std::filesystem::current_path().string() + "/Logs/ImageViewer.log", "AtlasImageViewer::ImageViewer"};
+  static AtlasLogger::Logger m_logger{
+    QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1).toStdString() + 
+    "/Atlas-Imager/Logs/" + AtlasLogger::GetCurrentDateString() + "/ImageViewer.log", 
+    "AtlasImageViewer::ImageViewer"
+  };
 
   enum class ImageViewerError : std::uint8_t
   {
@@ -59,6 +65,10 @@ namespace AtlasImageViewer
   namespace
   {
     constexpr auto kPi = std::numbers::pi;
+
+    // MSAA sample count for both onscreen and offscreen rendering.
+    // Keep this modest; higher values increase memory/bandwidth.
+    constexpr int kMsaaSamples = 4;
 
     auto DegreesToRadians(const double degrees) -> double
     {
@@ -237,6 +247,12 @@ namespace AtlasImageViewer
   {
     // std::ranges::fill(m_fbos, std::pair{nullptr, 0});
 
+    // Request a multisampled default framebuffer for this window.
+    // Must be set before the underlying context/surface is created.
+    auto fmt = this->format();
+    fmt.setSamples(kMsaaSamples);
+    this->setFormat(fmt);
+
   }
 
   ImageViewer::~ImageViewer()
@@ -266,26 +282,37 @@ namespace AtlasImageViewer
     if(m_texture)
       CleanUp();
 
-    auto image = QImage{QString::fromStdString(std::string{imagePath})}; 
+    //auto image = QImage{QString::fromStdString(std::string{imagePath})}; 
+    auto tempImage = AtlasImage::Image{imagePath,true}; 
+    auto transparentImage = tempImage.GetTransparentImage(AtlasImage::TransparentColorTarget::Black);
 
-    m_logger.Log(AtlasLogger::LogLevel::Info, "Image loaded with size: {}x{}", image.width(), image.height());
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Image loaded with size: {}x{}", transparentImage.cols, transparentImage.rows);
 
-    auto glImage = image.convertToFormat(QImage::Format_RGBA8888).mirrored();
+    cv::Mat glImage;
+
+    cv::flip(transparentImage, glImage, 0); // OpenGL expects the origin at the bottom-left, so flip vertically.
+
+    //auto glImage = image.convertToFormat(QImage::Format_RGBA8888).mirrored();
 
     // Your cell images have black backgrounds, so do a simple near-black key.
     // Tune threshold/feather if you see dark cell pixels getting cut out.
-    ApplyBlackBackgroundAlpha(glImage, /*threshold=*/12, /*feather=*/24);
+    //ApplyBlackBackgroundAlpha(glImage, /*threshold=*/12, /*feather=*/24);
 
-    m_logger.Log(AtlasLogger::LogLevel::Info, "Converted image to OpenGL format with size: {}x{}", glImage.width(), glImage.height());
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Converted image to OpenGL format with size: {}x{}", glImage.cols, glImage.rows);
 
     auto gl_funcs = this->context()->functions();
-    auto texture = CreateTexture(glImage, gl_funcs);
+    auto texture = CreateTexture(&glImage, gl_funcs);
 
-    m_fbo = CreateFrameBuffer(image.size());
+    auto imageSize = QSize{glImage.cols, glImage.rows};
+    auto msaaFbo = CreateMsaaFrameBuffer(imageSize, kMsaaSamples);
+    m_fbo = CreateResolveFrameBuffer(imageSize);
 
-    m_logger.Log(AtlasLogger::LogLevel::Info, "Created FBO with size: {}x{}", m_fbo->size().width(), m_fbo->size().height());
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Created resolve FBO with size: {}x{}", m_fbo->size().width(), m_fbo->size().height());
 
-    this->DrawToFBO(m_fbo.get(), gl_funcs, texture);
+    if(msaaFbo && msaaFbo->isValid() && m_fbo && m_fbo->isValid())
+      this->DrawToMsaaAndResolve(msaaFbo.get(), m_fbo.get(), gl_funcs, texture);
+    else if(m_fbo && m_fbo->isValid())
+      this->DrawToFBO(m_fbo.get(), gl_funcs, texture);
 
     gl_funcs->glDeleteTextures(1, &texture);
 
@@ -300,6 +327,9 @@ namespace AtlasImageViewer
     // Preserve transparency in the FBO so blending works as expected.
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Ensure multisampling is enabled when available.
+    glEnable(GL_MULTISAMPLE);
 
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, textureId);
@@ -318,12 +348,39 @@ namespace AtlasImageViewer
     glViewport(0, 0, this->width(), this->height());
   }
 
+  auto ImageViewer::DrawToMsaaAndResolve(QOpenGLFramebufferObject* msaaFbo, QOpenGLFramebufferObject* resolveFbo, QOpenGLFunctions* gl_funcs, const GLuint textureId) -> void
+  {
+    if(!msaaFbo || !resolveFbo)
+      return;
+
+    this->DrawToFBO(msaaFbo, gl_funcs, textureId);
+
+    // Resolve MSAA into the texture-backed FBO so it can be sampled in paintGL().
+    const QRect srcRect{0, 0, msaaFbo->size().width(), msaaFbo->size().height()};
+    const QRect dstRect{0, 0, resolveFbo->size().width(), resolveFbo->size().height()};
+    QOpenGLFramebufferObject::blitFramebuffer(resolveFbo, dstRect, msaaFbo, srcRect, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+  }
+
   auto ImageViewer::CreateImage(const std::string_view imagePath) -> QImage
   {
     auto image = QImage{QString::fromStdString(std::string{imagePath})};
     auto glImage = image.convertToFormat(QImage::Format_RGBA8888).mirrored();
     m_logger.Log(AtlasLogger::LogLevel::Info, "Created QImage from path: {} with size: {}x{}", imagePath, glImage.width(), glImage.height());
     return glImage;
+  }
+
+  auto ImageViewer::CreateTexture(const cv::Mat* image, QOpenGLFunctions* gl_funcs) -> GLuint
+  {
+    auto textureId = GLuint{};
+
+    gl_funcs->glGenTextures(1, &textureId);
+    gl_funcs->glBindTexture(GL_TEXTURE_2D, textureId);
+    gl_funcs->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->cols, image->rows, 0, GL_BGRA, GL_UNSIGNED_BYTE, image->data);
+    gl_funcs->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    gl_funcs->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    gl_funcs->glBindTexture(GL_TEXTURE_2D, 0);
+
+    return textureId;
   }
 
   auto ImageViewer::CreateTexture(const QImage& image, QOpenGLFunctions* gl_funcs) -> GLuint
@@ -340,12 +397,22 @@ namespace AtlasImageViewer
     return textureId;
   }
   
-  auto ImageViewer::CreateFrameBuffer(const QSize size) -> std::unique_ptr<QOpenGLFramebufferObject>
+  auto ImageViewer::CreateResolveFrameBuffer(const QSize size) -> std::unique_ptr<QOpenGLFramebufferObject>
   {
     auto fboFormat = QOpenGLFramebufferObjectFormat{};
     fboFormat.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+    fboFormat.setInternalTextureFormat(GL_RGBA8);
     auto fbo = std::make_unique<QOpenGLFramebufferObject>(size, fboFormat);
 
+    return fbo;
+  }
+
+  auto ImageViewer::CreateMsaaFrameBuffer(const QSize size, const int samples) -> std::unique_ptr<QOpenGLFramebufferObject>
+  {
+    auto fboFormat = QOpenGLFramebufferObjectFormat{};
+    fboFormat.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+    fboFormat.setSamples(std::max(0, samples));
+    auto fbo = std::make_unique<QOpenGLFramebufferObject>(size, fboFormat);
     return fbo;
   }
 
@@ -379,13 +446,17 @@ namespace AtlasImageViewer
 //        m_fbos[minWeightIndex].first = std::move(fbo);
 //      }
 //    }
-//    std::println("Successfully added FBO to array");
   }
   */
 
   auto ImageViewer::AddImage(const std::string_view imagePath) -> void
   {
-    auto image = CreateImage(imagePath);
+    //auto image = CreateImage(imagePath);
+    auto tempImage = AtlasImage::Image{imagePath,true}; 
+    auto transparentImage = tempImage.GetTransparentImage(AtlasImage::TransparentColorTarget::White);
+
+    cv::Mat image;
+    cv::flip(transparentImage, image, 0); // OpenGL expects the origin at the bottom-left, so flip vertically.
 
     if(!m_offscreenContext || !m_offscreensurface)
     {
@@ -395,13 +466,15 @@ namespace AtlasImageViewer
 
     m_offscreenContext->makeCurrent(m_offscreensurface.get());
     auto gl_funcs = m_offscreenContext->functions();
-    auto textureId = CreateTexture(image, gl_funcs);
+    auto textureId = CreateTexture(&image, gl_funcs);
 
     m_logger.Log(AtlasLogger::LogLevel::Info, "Created texture for image addition with ID: {}", textureId);
 
-    auto fbo = CreateFrameBuffer(image.size());
+    auto imageSize = QSize{image.cols, image.rows};
+    auto msaaFbo = CreateMsaaFrameBuffer(imageSize, kMsaaSamples);
+    auto fbo = CreateResolveFrameBuffer(imageSize);
 
-    if(!fbo->isValid())
+    if(!fbo || !fbo->isValid())
     {
       fbo.reset();
       gl_funcs->glDeleteTextures(1, &textureId);
@@ -409,7 +482,10 @@ namespace AtlasImageViewer
 
     m_logger.Log(AtlasLogger::LogLevel::Info, "Created FBO for image addition with size: {}x{}", fbo->size().width(), fbo->size().height());
 
-    this->DrawToFBO(fbo.get(), gl_funcs, textureId);
+    if(msaaFbo && msaaFbo->isValid() && fbo)
+      this->DrawToMsaaAndResolve(msaaFbo.get(), fbo.get(), gl_funcs, textureId);
+    else if(fbo)
+      this->DrawToFBO(fbo.get(), gl_funcs, textureId);
 
     gl_funcs->glDeleteTextures(1, &textureId);
 
@@ -439,9 +515,10 @@ namespace AtlasImageViewer
 
     m_logger.Log(AtlasLogger::LogLevel::Info, "Created texture for image addition with ID: {}", textureId);
 
-    auto fbo = CreateFrameBuffer(image.size());
+    auto msaaFbo = CreateMsaaFrameBuffer(image.size(), kMsaaSamples);
+    auto fbo = CreateResolveFrameBuffer(image.size());
 
-    if(!fbo->isValid())
+    if(!fbo || !fbo->isValid())
     {
       fbo.reset();
       gl_funcs->glDeleteTextures(1, &textureId);
@@ -449,7 +526,10 @@ namespace AtlasImageViewer
 
     m_logger.Log(AtlasLogger::LogLevel::Info, "Created FBO for image addition with size: {}x{}", fbo->size().width(), fbo->size().height());
 
-    this->DrawToFBO(fbo.get(), gl_funcs, textureId);
+    if(msaaFbo && msaaFbo->isValid() && fbo)
+      this->DrawToMsaaAndResolve(msaaFbo.get(), fbo.get(), gl_funcs, textureId);
+    else if(fbo)
+      this->DrawToFBO(fbo.get(), gl_funcs, textureId);
 
     gl_funcs->glDeleteTextures(1, &textureId);
 
@@ -484,6 +564,10 @@ namespace AtlasImageViewer
   auto ImageViewer::initializeGL() -> void
   {
     initializeOpenGLFunctions();
+
+    // Enable multisampling for this context when supported.
+    glEnable(GL_MULTISAMPLE);
+
     m_offscreensurface = std::make_unique<QOffscreenSurface>();
     m_offscreensurface->setFormat(this->context()->format());
     m_offscreensurface->create();
@@ -515,6 +599,7 @@ namespace AtlasImageViewer
   auto ImageViewer::paintGL() -> void
   {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_MULTISAMPLE);
     glEnable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
 
@@ -711,8 +796,6 @@ namespace AtlasImageViewer
   }
 
   auto ImageViewer::SaveImage() -> void {
-      m_logger.Log(AtlasLogger::LogLevel::Info, "Image saved! We are in the backend.");
-
       // Get what is displayed or something
       QImage image = this->grabFramebuffer();
 
@@ -916,6 +999,10 @@ namespace AtlasImageViewer
           this->RotateImage(*deg);
         else
           m_logger.Log(AtlasLogger::LogLevel::Error, "Failed to parse rotation degrees from: {}", imageInformation);
+        break;
+      case AtlasCommon::AtlasImageViewerState::SaveCurrentImage:
+        m_logger.Log(AtlasLogger::LogLevel::Info, "Save Current Image requested");
+        this->SaveImage();
         break;
       default:
         break;

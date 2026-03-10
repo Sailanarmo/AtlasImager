@@ -75,12 +75,12 @@ else()
     qt_add_executable(AtlasImager atlasimager.cpp)
   endif()
 
-  target_include_directories(AtlasImager PRIVATE ${ATLASIMAGER_ROOT_DIR})
-  target_link_libraries(
-    AtlasImager PUBLIC ${OpenCV_LIBS} OpenGL::GL
-    Qt6::Core Qt6::Gui Qt6::OpenGL Qt6::Widgets
-    Atlas::Logger Atlas::Image Atlas::GUI Atlas::Messenger Atlas::Model Atlas::ImageViewer
-  )
+target_include_directories(AtlasImager PRIVATE ${ATLASIMAGER_ROOT_DIR} ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(
+  AtlasImager PUBLIC ${OpenCV_LIBS} OpenGL::GL 
+  Qt6::Core Qt6::Gui Qt6::OpenGL Qt6::Widgets Atlas::Logger Atlas::Image
+  Atlas::GUI Atlas::Messenger Atlas::Model Atlas::ImageViewer
+)
 
   if(MSVC)
     target_compile_options(AtlasImager PUBLIC "/Zc:__cplusplus")

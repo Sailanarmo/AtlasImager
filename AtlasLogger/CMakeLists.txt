@@ -3,7 +3,7 @@ project(AtlasLogger)
 add_library(AtlasLogger STATIC atlaslogger.cpp)
 target_include_directories(
   AtlasLogger PRIVATE 
-  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR} ${Qt6Core_INCLUDE_DIRS}
 )
 
 if(MSVC)
