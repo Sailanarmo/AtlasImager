@@ -95,12 +95,11 @@ static auto JsArrayToVec(const emscripten::val& jsArray) -> std::vector<uint8_t>
 {
   const auto len = jsArray["length"].as<unsigned>();
   std::vector<uint8_t> buf(len);
-  // Create a Uint8Array view over our freshly allocated WASM buffer and
-  // call .set() to copy the JS-side bytes in a single JS call (fast path).
-  emscripten::val::global("Uint8Array")
-    .new_(emscripten::val::module_property("HEAPU8")["buffer"],
-          reinterpret_cast<uintptr_t>(buf.data()), len)
-    .call<void>("set", jsArray);
+  // typed_memory_view creates a Uint8Array view directly over our WASM buffer
+  // at buf.data() without needing Module.HEAPU8, then .set() copies the JS
+  // pixels into it in a single JS call.
+  emscripten::val memView{emscripten::typed_memory_view(len, buf.data())};
+  memView.call<void>("set", jsArray);
   return buf;
 }
 

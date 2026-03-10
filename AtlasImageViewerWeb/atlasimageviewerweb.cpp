@@ -2,6 +2,7 @@
 
 // Emscripten / WebGL headers — only present when compiling with emcc.
 #include <GLES2/gl2.h>
+#include <emscripten/html5.h>
 
 // AtlasImage wraps a cv::Mat and provides GetRawData() (RGBA bytes) and
 // GetImage() (cv::Mat*) — used for both uploading to WebGL and future
@@ -111,6 +112,20 @@ namespace AtlasImageViewerWeb
   {
     m_viewportWidth  = canvasWidth;
     m_viewportHeight = canvasHeight;
+
+    // Create and activate a WebGL context bound to the page canvas.
+    // This must happen before any GL call so that GLctx is non-null.
+    EmscriptenWebGLContextAttributes attrs;
+    emscripten_webgl_init_context_attributes(&attrs);
+    attrs.majorVersion = 1; // WebGL 1 / GLES 2
+    attrs.minorVersion = 0;
+    attrs.alpha        = true;
+    attrs.depth        = false;
+    attrs.stencil      = false;
+    attrs.antialias    = false;
+    const EMSCRIPTEN_WEBGL_CONTEXT_HANDLE ctx =
+      emscripten_webgl_create_context("#atlas-canvas", &attrs);
+    emscripten_webgl_make_context_current(ctx);
 
     CompileShaders();
 
