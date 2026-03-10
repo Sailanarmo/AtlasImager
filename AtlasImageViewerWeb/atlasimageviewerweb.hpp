@@ -98,8 +98,11 @@ namespace AtlasImageViewerWeb
     int    m_baseWidth{0};
     int    m_baseHeight{0};
 
-    // Overlay textures (atlas model matches), cycled via Next/Prev
+    // Overlay textures (atlas model matches), cycled via Next/Prev.
+    // m_overlayWidths/Heights store each texture's pixel dimensions for aspect-fit.
     std::vector<GLuint> m_overlayTextures;
+    std::vector<int>    m_overlayWidths;
+    std::vector<int>    m_overlayHeights;
     std::size_t         m_overlayIndex{0};
 
     // Viewport

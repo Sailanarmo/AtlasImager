@@ -1,5 +1,7 @@
 #include "atlasimageviewerweb.hpp"
 
+#include "AtlasLogger/atlaslogger.hpp"
+
 // Emscripten / WebGL headers — only present when compiling with emcc.
 #include <GLES2/gl2.h>
 #include <emscripten/html5.h>
@@ -94,6 +96,8 @@ namespace
 
 namespace AtlasImageViewerWeb
 {
+
+  static AtlasLogger::Logger m_logger{"", "AtlasImageViewerWeb::ImageViewer"};
   // ---------------------------------------------------------------------------
   // Destructor
   // ---------------------------------------------------------------------------
@@ -112,6 +116,8 @@ namespace AtlasImageViewerWeb
   {
     m_viewportWidth  = canvasWidth;
     m_viewportHeight = canvasHeight;
+
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Initializing WebGL context with canvas size {}x{}", canvasWidth, canvasHeight);
 
     // Create and activate a WebGL context bound to the page canvas.
     // This must happen before any GL call so that GLctx is non-null.
@@ -147,7 +153,9 @@ namespace AtlasImageViewerWeb
   {
     m_viewportWidth  = width;
     m_viewportHeight = height;
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Resizing WebGL viewport to {}x{}", width, height);
     glViewport(0, 0, width, height);
+    Paint();
   }
 
   // ---------------------------------------------------------------------------
@@ -160,24 +168,28 @@ namespace AtlasImageViewerWeb
     glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(m_shaderProgram);
 
+    // Aspect-fit helper: mirrors Qt's computeAspectFit lambda.
+    // Produces scaleX/scaleY <= 1.0 that letterbox/pillarbox the quad so the
+    // image's pixel aspect ratio is preserved inside the viewport.
+    auto computeAspectFit = [&](int imgW, int imgH, float& outSX, float& outSY)
+    {
+      outSX = 1.0f;
+      outSY = 1.0f;
+      if(imgW <= 0 || imgH <= 0 || m_viewportWidth <= 0 || m_viewportHeight <= 0) return;
+      const float vpAR  = static_cast<float>(m_viewportWidth)  / static_cast<float>(m_viewportHeight);
+      const float imgAR = static_cast<float>(imgW) / static_cast<float>(imgH);
+      if(imgAR > vpAR)  outSY = vpAR  / imgAR;
+      else              outSX = imgAR / vpAR;
+    };
+
     // Draw base image (opacity 1.0, no overlay blending).
     if(m_baseTexture)
     {
-      const float baseAspect = (m_baseHeight > 0)
-        ? static_cast<float>(m_baseWidth) / static_cast<float>(m_baseHeight)
-        : 1.0f;
-      const float vpAspect = (m_viewportHeight > 0)
-        ? static_cast<float>(m_viewportWidth) / static_cast<float>(m_viewportHeight)
-        : 1.0f;
-
-      // Fit base image to viewport preserving aspect ratio.
       float sx = 1.0f, sy = 1.0f;
-      if(baseAspect > vpAspect)  sy = vpAspect / baseAspect;
-      else                       sx = baseAspect / vpAspect;
-
+      computeAspectFit(m_baseWidth, m_baseHeight, sx, sy);
       DrawQuad(m_baseTexture,
-               static_cast<float>(sx * m_scale),
-               static_cast<float>(sy * m_scale),
+               sx * static_cast<float>(m_scale),
+               sy * static_cast<float>(m_scale),
                static_cast<float>(m_basePanX),
                static_cast<float>(m_basePanY),
                static_cast<float>(m_rotationDegrees),
@@ -188,9 +200,11 @@ namespace AtlasImageViewerWeb
     if(!m_overlayTextures.empty())
     {
       const GLuint overlayTex = m_overlayTextures[m_overlayIndex];
+      float osx = 1.0f, osy = 1.0f;
+      computeAspectFit(m_overlayWidths[m_overlayIndex], m_overlayHeights[m_overlayIndex], osx, osy);
       DrawQuad(overlayTex,
-               static_cast<float>(m_overlayScale),
-               static_cast<float>(m_overlayScale),
+               osx * static_cast<float>(m_overlayScale),
+               osy * static_cast<float>(m_overlayScale),
                static_cast<float>(m_overlayPanX),
                static_cast<float>(m_overlayPanY),
                static_cast<float>(m_rotationDegrees),
@@ -367,10 +381,13 @@ namespace AtlasImageViewerWeb
     const float rad  = rotation * (kPi / 180.0f);
     const float cosA = std::cos(rad);
     const float sinA = std::sin(rad);
+    // Column-major 3x3 transform. Aspect correction maps into square pixel-space
+    // before rotating, then maps back — identical to the Qt viewer's rotate lambda.
+    // At rotation=0 this collapses to a pure scale+translate with no aspect distortion.
     const float transform[9] = {
-       cosA * scaleX / vpAspect,  sinA * scaleY,              0.0f,
-      -sinA * scaleX,             cosA * scaleY * vpAspect,   0.0f,
-       panX,                      panY,                        1.0f,
+       cosA * scaleX,                 sinA * scaleX * vpAspect,  0.0f,
+      -sinA * scaleY / vpAspect,      cosA * scaleY,             0.0f,
+       panX,                          panY,                       1.0f,
     };
 
     const GLint uTransform = glGetUniformLocation(m_shaderProgram, "u_transform");
@@ -416,9 +433,10 @@ namespace AtlasImageViewerWeb
     if(src->channels() == 1)
       cv::cvtColor(*src, rgba, cv::COLOR_GRAY2RGBA);
     else if(src->channels() == 3)
-      cv::cvtColor(*src, rgba, cv::COLOR_BGR2RGBA);
+      // Browser sources (canvas/geotiff) give RGB, not BGR — use COLOR_RGB2RGBA.
+      cv::cvtColor(*src, rgba, cv::COLOR_RGB2RGBA);
     else
-      rgba = *src; // already RGBA
+      rgba = *src; // already RGBA (canvas getImageData)
 
     // Flip vertically so the image is right-side up in OpenGL's bottom-left origin.
     cv::Mat flipped;
@@ -426,6 +444,8 @@ namespace AtlasImageViewerWeb
 
     outWidth  = flipped.cols;
     outHeight = flipped.rows;
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Uploading image as texture ({}x{}, {} channels)",
+                 outWidth, outHeight, flipped.channels());
     return UploadTexture(flipped.data, outWidth, outHeight);
   }
 
@@ -442,7 +462,12 @@ namespace AtlasImageViewerWeb
     auto img = AtlasImage::Image{imagePath};
     int w{}, h{};
     GLuint tex = UploadFromAtlasImage(img, w, h);
-    if(tex) m_overlayTextures.push_back(tex);
+    if(tex)
+    {
+      m_overlayTextures.push_back(tex);
+      m_overlayWidths.push_back(w);
+      m_overlayHeights.push_back(h);
+    }
     Paint();
   }
 
@@ -467,7 +492,12 @@ namespace AtlasImageViewerWeb
     auto img = AtlasImage::Image{"overlay_image", data, width, height, cvType};
     int w{}, h{};
     GLuint tex = UploadFromAtlasImage(img, w, h);
-    if(tex) m_overlayTextures.push_back(tex);
+    if(tex)
+    {
+      m_overlayTextures.push_back(tex);
+      m_overlayWidths.push_back(w);
+      m_overlayHeights.push_back(h);
+    }
     Paint();
   }
 
