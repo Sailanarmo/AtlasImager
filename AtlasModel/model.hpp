@@ -1,7 +1,6 @@
 #pragma once
 
 #include "AtlasCommon/atlasenums.hpp"
-#include "AtlasImage/image.hpp"
 
 #include <array>
 #include <memory>
@@ -10,6 +9,10 @@
 #include <expected>
 #include <string_view>
 
+namespace AtlasImage
+{
+  class Image;
+}
 /*
 * Atlas Model is the class that does the heavy lifting. This attempts to find the best 3 matches
 * using OpenCV's BFMatcher (I believe this stands for Brute Force). It will then return the filename
@@ -32,6 +35,7 @@ namespace AtlasModel
       };
 
       Model();
+      ~Model();
 
       auto HandleStateUpdate(const AtlasCommon::AtlasModelState state, const std::string_view userImage = "") -> void;
     
@@ -52,7 +56,7 @@ namespace AtlasModel
       //auto ProcessBestFits(const std::string_view imageName) -> void;
       // auto GetBestFits(const std::string_view imageName) -> std::array<std::string, 3>;
 
-      AtlasCommon::AtlasDataSet m_loadedDataSet{AtlasCommon::AtlasDataSet::LGN};
+      AtlasCommon::AtlasDataSet m_loadedDataSet{AtlasCommon::AtlasDataSet::NONE};
       
   };
 }

@@ -1,4 +1,6 @@
 #include "model.hpp"
+
+#include "AtlasImage/image.hpp"
 #include "AtlasMessenger/atlasmessenger.hpp"
 #include "AtlasLogger/atlaslogger.hpp"
 
@@ -73,6 +75,12 @@ namespace AtlasModel
   Model::Model()
   {
     InitializeModel();
+  }
+
+  Model::~Model()
+  {
+    m_logger.Log(AtlasLogger::LogLevel::Info, "Model Destructor Called. Clearing loaded images.");
+    m_images.clear();
   }
 
   auto Model::LoadDataSet(const AtlasCommon::AtlasDataSet dataSet) -> void

@@ -32,7 +32,7 @@ else()
   qt_add_executable(AtlasImager atlasimager.cpp)
 endif()
 
-target_include_directories(AtlasImager PRIVATE ${ATLASIMAGER_ROOT_DIR})
+target_include_directories(AtlasImager PRIVATE ${ATLASIMAGER_ROOT_DIR} ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(
   AtlasImager PUBLIC ${OpenCV_LIBS} OpenGL::GL 
   Qt6::Core Qt6::Gui Qt6::OpenGL Qt6::Widgets Atlas::Logger Atlas::Image
