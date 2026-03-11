@@ -1,23 +1,23 @@
-#include "atlaslogger.hpp"
+#include "atlasfilelogger.hpp"
 
 #include <fstream>
 
 namespace AtlasLogger
 {
-  Logger::Logger(const std::string_view logFilePath, const std::string_view loggerClassName)
+  FileLogger::FileLogger(const std::string_view logFilePath, const std::string_view loggerClassName)
     : m_logFilePath(logFilePath), m_loggerClassName(loggerClassName)
   {
     this->initializeLogFile();
   }
 
-  Logger::~Logger()
+  FileLogger::~FileLogger()
   {
     std::ofstream ofs(m_logFilePath, std::ios::app);
     ofs << "--- Atlas Logger Instance for " << m_loggerClassName << " Destroyed ---\n";
     ofs.close();
   }
 
-  auto Logger::initializeLogFile() -> void
+  auto FileLogger::initializeLogFile() -> void
   {
     if(!std::filesystem::exists(m_logFilePath.parent_path()))
     {
@@ -38,7 +38,7 @@ namespace AtlasLogger
     }
   }
 
-  auto Logger::LogMessageToDisk(
+  auto FileLogger::Write(
     const LogLevel level,
     const std::chrono::system_clock::time_point& timestamp,
     const std::string_view message
@@ -50,8 +50,6 @@ namespace AtlasLogger
       return;
     }
 
-    const auto timeT = std::chrono::system_clock::to_time_t(timestamp);
-
     ofs << "[" << std::chrono::current_zone()->to_local(timestamp) << "] "
         << "[" << LogLevelToString(level) << "] "
         << "[" << m_loggerClassName << "] "
@@ -59,5 +57,5 @@ namespace AtlasLogger
 
     ofs.close();
   }
-  
-}
+
+} // namespace AtlasLogger

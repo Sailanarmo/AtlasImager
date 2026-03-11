@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AtlasCommon/atlasenums.hpp"
+#include "AtlasCommon/iimageviewer.hpp"
 
 #include <memory>
 #include <array>
@@ -14,6 +15,11 @@
 #include <QOpenGLFramebufferObject>
 
 class QImage;
+
+namespace cv
+{
+  class Mat;
+}
 
 /*
 * The Atlas Image Viewer is the renderer itself. This will render an image by binding that
@@ -31,7 +37,7 @@ class QImage;
 */
 namespace AtlasImageViewer
 {
-  class ImageViewer : public QOpenGLWindow, protected QOpenGLFunctions
+  class ImageViewer : public QOpenGLWindow, protected QOpenGLFunctions, public AtlasCommon::IImageViewer
   {
     Q_OBJECT
     public:
@@ -41,9 +47,9 @@ namespace AtlasImageViewer
       auto OnNextButtonPressed() -> void;
       auto OnPrevButtonPressed() -> void;
       auto OnSliderUpdated(double value) -> void;
-      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view imageInformation = "") -> void;
-      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view mainLabelText, const std::string_view progressBarTextformat) -> void;
-      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const int value) -> void;
+      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view imageInformation = "") -> void override;
+      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const std::string_view mainLabelText, const std::string_view progressBarTextformat) -> void override;
+      auto HandleStateUpdate(const AtlasCommon::AtlasImageViewerState state, const int value) -> void override;
       auto ResetImage() -> void;
       auto MoveImageLeft() -> void;
       auto MoveImageRight() -> void;
@@ -104,8 +110,11 @@ namespace AtlasImageViewer
       auto RenderMainImage(const std::string_view imagePath) -> void;
       auto CreateImage(const std::string_view imagePath) -> QImage;
       auto CreateTexture(const QImage& image, QOpenGLFunctions* gl_funcs) -> GLuint;
-      auto CreateFrameBuffer(const QSize size) -> std::unique_ptr<QOpenGLFramebufferObject>;
+      auto CreateTexture(const cv::Mat* image, QOpenGLFunctions* gl_funcs) -> GLuint;
+      auto CreateResolveFrameBuffer(const QSize size) -> std::unique_ptr<QOpenGLFramebufferObject>;
+      auto CreateMsaaFrameBuffer(const QSize size, const int samples) -> std::unique_ptr<QOpenGLFramebufferObject>;
       auto DrawToFBO(QOpenGLFramebufferObject* fbo, QOpenGLFunctions* gl_funcs, const GLuint textureId) -> void;
+      auto DrawToMsaaAndResolve(QOpenGLFramebufferObject* msaaFbo, QOpenGLFramebufferObject* resolveFbo, QOpenGLFunctions* gl_funcs, const GLuint textureId) -> void;
       //auto AddFBOToArray(std::unique_ptr<QOpenGLFramebufferObject>&& fbo, const double weight) -> void;
 
       auto AddFBOToVector(std::unique_ptr<QOpenGLFramebufferObject>&& fbo) -> void;

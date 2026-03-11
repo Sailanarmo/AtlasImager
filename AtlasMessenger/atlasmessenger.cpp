@@ -1,5 +1,4 @@
 #include "atlasmessenger.hpp"
-#include "AtlasImageViewer/atlasimageviewer.hpp"
 #include "AtlasModel/model.hpp"
 
 namespace AtlasMessenger
@@ -10,7 +9,7 @@ namespace AtlasMessenger
     return instance;
   }
 
-  auto Messenger::SetImageViewer(AtlasImageViewer::ImageViewer* imageViewer) -> void
+  auto Messenger::SetImageViewer(AtlasCommon::IImageViewer* imageViewer) -> void
   {
     m_imageViewer = imageViewer;
   }
